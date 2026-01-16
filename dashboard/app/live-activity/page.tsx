@@ -28,7 +28,9 @@ interface ScanStatus {
     duration?: number;
 }
 
-export default function LiveActivityPage() {
+import { Suspense } from "react";
+
+function LiveActivityContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const scanId = searchParams.get("scanId");
@@ -304,6 +306,21 @@ export default function LiveActivityPage() {
                 </div>
             </motion.div>
         </main>
+    );
+}
+
+export default function LiveActivityPage() {
+    return (
+        <Suspense fallback={
+            <div className="h-screen w-full flex items-center justify-center bg-black text-white">
+                <div className="flex flex-col items-center gap-4">
+                    <Activity className="w-10 h-10 text-cyan-500 animate-pulse" />
+                    <p className="text-sm text-white/50 font-mono">Initializing Neural Protocol...</p>
+                </div>
+            </div>
+        }>
+            <LiveActivityContent />
+        </Suspense>
     );
 }
 
