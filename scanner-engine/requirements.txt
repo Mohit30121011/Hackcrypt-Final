@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+playwright
+aiohttp
+beautifulsoup4
+pydantic
