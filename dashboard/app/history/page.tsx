@@ -277,7 +277,7 @@ export default function AnalyticsDashboard() {
                             <button className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">View All Analysis</button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            {selectedScan?.findings.slice(0, 8).map((finding, idx) => (
+                            {selectedScan?.findings.slice(0, 8).map((finding: Finding, idx: number) => (
                                 <div
                                     key={idx}
                                     className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group"
