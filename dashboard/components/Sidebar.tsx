@@ -21,13 +21,13 @@ export function Sidebar({ activeItem }: SidebarProps) {
             <div>
                 {/* Logo Section */}
                 {/* Logo Section */}
-                <div className="flex items-center justify-center mb-16 py-6">
+                <div className="flex items-center justify-center mb-16 py-8">
                     <Image
                         src="/logo.png"
                         alt="Scancrypt Logo"
-                        width={560}
-                        height={170}
-                        className="w-auto h-40 object-contain drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]"
+                        width={700}
+                        height={250}
+                        className="w-auto h-60 object-contain drop-shadow-[0_0_25px_rgba(168,85,247,0.7)]"
                         priority
                     />
                 </div>
