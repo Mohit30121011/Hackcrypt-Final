@@ -1,20 +1,33 @@
 import aiohttp
 import asyncio
 import re
+import random
 import time
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, urljoin
 
 class VulnerabilityScanner:
-    def __init__(self):
+    def __init__(self, stealth_mode: bool = False):
+        self.stealth_mode = stealth_mode
         self.findings: List[Dict[str, Any]] = []
         
+        # WAF Evasion: User-Agent Rotation
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
+        ]
+
         # Knowledge Base for Detection Logic
         self.sql_errors = [
             "You have an error in your SQL syntax",
             "Warning: mysql_",
             "Unclosed quotation mark after the character string",
+            "Unclosed quotation mark after the character string",
             "quoted string not properly terminated",
+            "Syntax error near", # Common generic error
         ]
         self.xss_test_string = "<sc_test>"
         self.sensitive_patterns = {
@@ -29,166 +42,96 @@ class VulnerabilityScanner:
             "X-Frame-Options",
             "X-Content-Type-Options"
         ]
-
+        
+        # Smart 404 Detection
+        self.scanned_hosts = set()
+        self.smart_404_fingerprint = None
+        
         # Knowledge Base for Reporting
         self.kb = {
-            "sql_injection": {
-                "name": "SQL Injection",
-                "severity": "High",
-                "cwe": "CWE-89",
-                "description": "The application allows untrusted user input to interfere with a database query. This could allow an attacker to view, modify, or delete data.",
-                "remediation": "Use parameterized queries (Prepared Statements) for all database access. Validate and sanitize all user input.",
-                "remediation_code": """# Python (Secure)
-cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))"""
-            },
-            "xss_reflected": {
-                "name": "Reflected Cross-Site Scripting (XSS)",
-                "severity": "Medium",
-                "cwe": "CWE-79",
-                "description": "The application reflects untrusted data in a web page without proper validation or escaping, allowing execution of malicious scripts.",
-                "remediation": "Context-aware output encoding (escaping) of all user input before rendering it in the browser.",
-                "remediation_code": """# Python (Jinja2) - Auto-escapes by default
-{{ user_input }}
-
-# JavaScript (React) - Safe by default
-<div>{userInput}</div>"""
-            },
-            "sensitive_data": {
-                "name": "Sensitive Data Exposure",
-                "severity": "Low",
-                "cwe": "CWE-200",
-                "description": "The application exposes sensitive information (emails, keys, passwords) in its responses.",
-                "remediation": "Ensure sensitive data is not returned in API responses or HTML comments. Use generic error messages."
-            },
-            "security_header": {
-                "name": "Missing Security Header",
-                "severity": "Low",
-                "cwe": "CWE-693",
-                "description": "The application is missing common HTTP security headers that provide protection against attacks like Clickjacking and XSS.",
-                "remediation": "Configure the web server to send strict security headers (CSP, HSTS, X-Frame-Options)."
-            },
-            "hidden_file": {
-                "name": "Hidden File Exposure",
-                "severity": "High",
-                "cwe": "CWE-538",
-                "description": "A sensitive file (backup, config, or VCS) was found accessible on the server.",
-                "remediation": "Remove backup and configuration files from the web root. Configure the server to deny access to dot-files (.git, .env)."
-            },
-            "blind_sqli": {
-                "name": "Blind SQL Injection (Time-Based)",
-                "severity": "Critical",
-                "cwe": "CWE-89",
-                "description": "The application delays its response when specific SQL commands (SLEEP) are injected, indicating a Blind SQL Injection vulnerability.",
-                "remediation": "Use parameterized queries. Ensure database errors are not suppressing the logic but preventing the injection entirely.",
-                "remediation_code": """# Python (Secure)
-query = "SELECT * FROM products WHERE id = :id"
-db.session.execute(query, {'id': input_id})"""
-            },
-            "union_sqli": {
-                "name": "SQL Injection (UNION-Based)",
-                "severity": "Critical",
-                "cwe": "CWE-89",
-                "description": "The application allows combining results of the original query with results of an injected query using the UNION operator.",
-                "remediation": "Use parameterized queries. Ensure that user input is not concatenated into SQL command strings."
-            },
-            "dom_xss": {
-                "name": "Potential DOM-Based XSS",
-                "severity": "Medium",
-                "cwe": "CWE-79",
-                "description": "Dangerous JavaScript functions (sinks) were found in the client-side code that could lead to DOM XSS if inputs are not validated.",
-                "remediation": "Avoid using dangerous sinks like innerHTML, eval(), or document.write(). Use textContent or safe DOM creation methods."
-            },
-            "tech_stack": {
-                "name": "Technology Stack Disclosure",
-                "severity": "Info",
-                "cwe": "CWE-200",
-                "description": "The application discloses specific technology versions via headers or default files, which aids attackers in finding known exploits.",
-                "remediation": "Configure the server to suppress 'Server' and 'X-Powered-By' headers. Remove default welcome pages."
-            },
-            "lfi": {
-                "name": "Local File Inclusion (LFI)",
-                "severity": "Critical",
-                "cwe": "CWE-22",
-                "description": "The application allows reading arbitrary files from the server via path traversal sequences.",
-                "remediation": "Validate user input against a whitelist of permitted filenames. Disable 'allow_url_include' in PHP."
-            },
-            "ssti": {
-                "name": "Server-Side Template Injection (SSTI)",
-                "severity": "Critical",
-                "cwe": "CWE-1336",
-                "description": "The application blindly processes user input inside a template engine. This often leads to RCE.",
-                "remediation": "Do not pass user input directly to templates. Use a 'Sandboxed' environment."
-            },
-            "cors_misconfig": {
-                "name": "CORS Misconfiguration (Insecure Origin)",
-                "severity": "High",
-                "cwe": "CWE-346",
-                "description": "The application accepts arbitrary origins (Access-Control-Allow-Origin: * or null), allowing attackers to steal data.",
-                "remediation": "Whiltelist trusted origins. Do not reflect the 'Origin' header blindly."
-            },
-            "open_port": {
-                "name": "Open Service Port",
-                "severity": "Info",
-                "cwe": "CWE-200",
-                "description": "A non-standard service port was found open on the server.",
-                "remediation": "Close unnecessary ports via firewall. Ensure services on open ports are patched."
-            },
-            "csti": {
-                "name": "Client-Side Template Injection (CSTI)",
-                "severity": "High",
-                "cwe": "CWE-79",
-                "description": "The application reflects user input that is interpreted by client-side frameworks (Angular, Vue).",
-                "remediation": "Escape user input before embedding it in templates. Use 'ng-non-bindable' or 'v-pre'."
-            },
-            "blind_rce": {
-                "name": "Blind Remote Code Execution",
-                "severity": "Critical",
-                "cwe": "CWE-78",
-                "description": "The application executes system commands but does not return the output. Detected via time delays.",
-                "remediation": "Avoid using system calls. Validate input strictly against a whitelist."
-            },
-            "bola": {
-                "name": "Broken Object Level Authorization (BOLA/IDOR)",
-                "severity": "High",
-                "cwe": "CWE-639",
-                "description": "The application allows access to objects belonging to other users by manipulating IDs.",
-                "remediation": "Implement proper authorization checks for every object access.",
-                "remediation_code": """# Python (Secure)
-if document.owner_id != current_user.id:
-    abort(403, "Access Denied")"""
-            },
-            "bac": {
-                "name": "Broken Access Control (BAC)",
-                "severity": "High",
-                "cwe": "CWE-285",
-                "description": "Unprivileged users can access restricted administrative pages.",
-                "remediation": "Enforce strict role-based access control (RBAC) on all endpoints.",
-                "remediation_code": """# Python (Decorator)
-@requires_role('admin')
-def admin_dashboard():
-    ..."""
-            },
-            "jwt_none": {
-                "name": "Insecure JWT (Alg: None)",
-                "severity": "Critical",
-                "cwe": "CWE-327",
-                "description": "The application allows JSON Web Tokens with 'alg': 'none', which bypasses signature verification.",
-                "remediation": "Enforce strong algorithms (RS256/HS256) and reject 'none' algorithm.",
-                "remediation_code": """# Python (PyJWT)
-payload = jwt.decode(token, key, algorithms=["HS256"])
-# Never use verify=False or allow 'none'"""
-            },
-            "cookie_insecure": {
-                "name": "Insecure Cookie Flags",
-                "severity": "Low",
-                "cwe": "CWE-1275",
-                "description": "Sensitive cookies are missing 'Secure', 'HttpOnly', or 'SameSite' flags.",
-                "remediation": "Set Secure=True, HttpOnly=True, and SameSite=Strict/Lax for all session cookies.",
-                "remediation_code": """# Python (Flask)
-response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax')"""
-            }
+            "sql_injection": {"name": "SQL Injection", "severity": "High", "cwe": "CWE-89", "description": "Untrusted input interferes with a database query.", "remediation": "Use parameterized queries."},
+            "xss_reflected": {"name": "Reflected XSS", "severity": "Medium", "cwe": "CWE-79", "description": "Reflects untrusted data without escaping.", "remediation": "Use output encoding."},
+            "sensitive_data": {"name": "Sensitive Data Exposure", "severity": "Low", "cwe": "CWE-200", "description": "Exposes sensitive information.", "remediation": "Remove from responses."},
+            "security_header": {"name": "Missing Security Header", "severity": "Low", "cwe": "CWE-693", "description": "Missing HTTP security headers.", "remediation": "Configure strict headers."},
+            "hidden_file": {"name": "Hidden File Exposure", "severity": "High", "cwe": "CWE-538", "description": "Sensitive file accessible.", "remediation": "Remove from web root."},
+            "blind_sqli": {"name": "Blind SQL Injection", "severity": "Critical", "cwe": "CWE-89", "description": "Time-based SQL injection.", "remediation": "Use parameterized queries."},
+            "union_sqli": {"name": "UNION SQLi", "severity": "Critical", "cwe": "CWE-89", "description": "UNION-based SQL injection.", "remediation": "Use parameterized queries."},
+            "dom_xss": {"name": "DOM XSS", "severity": "Medium", "cwe": "CWE-79", "description": "Dangerous JS sinks found.", "remediation": "Avoid innerHTML, eval()."},
+            "tech_stack": {"name": "Tech Stack Disclosure", "severity": "Info", "cwe": "CWE-200", "description": "Discloses tech versions.", "remediation": "Suppress Server headers."},
+            "lfi": {"name": "Local File Inclusion", "severity": "Critical", "cwe": "CWE-22", "description": "Reads arbitrary files.", "remediation": "Validate against whitelist."},
+            "ssti": {"name": "Server-Side Template Injection", "severity": "Critical", "cwe": "CWE-1336", "description": "Template engine RCE.", "remediation": "Sandbox templates."},
+            "cors_misconfig": {"name": "CORS Misconfiguration", "severity": "High", "cwe": "CWE-346", "description": "Accepts arbitrary origins.", "remediation": "Whitelist trusted origins."},
+            "open_port": {"name": "Open Port", "severity": "Info", "cwe": "CWE-200", "description": "Non-standard port open.", "remediation": "Close via firewall."},
+            "csti": {"name": "Client-Side Template Injection", "severity": "High", "cwe": "CWE-79", "description": "Reflected in client templates.", "remediation": "Escape user input."},
+            "blind_rce": {"name": "Blind RCE", "severity": "Critical", "cwe": "CWE-78", "description": "Executes commands (time delay).", "remediation": "Avoid system calls."},
+            "rce": {"name": "Remote Code Execution", "severity": "Critical", "cwe": "CWE-78", "description": "Executes arbitrary commands.", "remediation": "Never pass user input to system."},
+            "bola": {"name": "BOLA/IDOR", "severity": "High", "cwe": "CWE-639", "description": "Access to other users' objects.", "remediation": "Implement authorization checks."},
+            "bac": {"name": "Broken Access Control", "severity": "High", "cwe": "CWE-285", "description": "Unprivileged access to admin pages.", "remediation": "Enforce RBAC."},
+            "jwt_none": {"name": "Insecure JWT (alg:none)", "severity": "Critical", "cwe": "CWE-327", "description": "JWT signature bypass.", "remediation": "Reject 'none' algorithm."},
+            "cookie_insecure": {"name": "Insecure Cookie Flags", "severity": "Low", "cwe": "CWE-1275", "description": "Missing Secure/HttpOnly flags.", "remediation": "Set cookie flags properly."},
+            "weak_crypto": {"name": "Weak Cryptography", "severity": "Medium", "cwe": "CWE-327", "description": "Weak crypto algorithms.", "remediation": "Use AES-256, SHA-256."}
         }
-        self.scanned_hosts = set()
+        
+    async def perform_request(self, session, method, url, **kwargs):
+        """
+        Wrapper for HTTP requests with WAF Evasion (Jitter + User-Agent Rotation).
+        """
+        if self.stealth_mode:
+            # 1. Random Delay (Jitter)
+            delay = random.uniform(0.5, 1.5)
+            await asyncio.sleep(delay)
+            
+            # 2. Rotate User-Agent
+            headers = kwargs.get("headers", {})
+            if "User-Agent" not in headers:
+                headers["User-Agent"] = random.choice(self.user_agents)
+            kwargs["headers"] = headers
+        
+        # 3. Perform Request
+        try:
+            if method.upper() == "GET":
+                return session.get(url, **kwargs)
+            elif method.upper() == "POST":
+                return session.post(url, **kwargs)
+            elif method.upper() == "HEAD":
+                return session.head(url, **kwargs)
+        except Exception:
+            # Return a dummy context manager that yields None or raises
+            pass
+        return session.get(url, **kwargs) # Fallback
+
+    async def detect_smart_404(self, session, url):
+        """
+        Fingerprints the 'Not Found' page of the server to avoid FPs.
+        """
+        try:
+            parsed = urlparse(url)
+            # Use a specialized bogus path
+            bogus_url = f"{parsed.scheme}://{parsed.netloc}/sc_404_{int(time.time())}"
+            ctx = await self.perform_request(session, 'GET', bogus_url, timeout=5)
+            async with ctx as resp:
+                text = await resp.text()
+                # Store status and length (with sloppy tolerance)
+                self.smart_404_fingerprint = (resp.status, len(text))
+                print(f"[*] Smart 404 Fingerprint: Status={resp.status}, Len={len(text)}")
+        except:
+            pass
+
+    def is_custom_404(self, status, text):
+        """
+        Checks if a response matches the Smart 404 fingerprint.
+        """
+        if not self.smart_404_fingerprint:
+            return False
+            
+        fp_status, fp_len = self.smart_404_fingerprint
+        
+        # If status matches exactly
+        if status == fp_status:
+            # If length is within 5% tolerance
+            if abs(len(text) - fp_len) < (fp_len * 0.05):
+                return True
+        return False
 
     def _add_finding(self, key: str, url: str, evidence: str, param: str = None, payload: str = None):
         info = self.kb.get(key, {})
@@ -214,6 +157,11 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
 
     async def scan_url(self, url: str, session: aiohttp.ClientSession):
         print(f"[*] Scanning {url}...")
+        
+        # 0. Smart 404 Baseline (Once per host)
+        parsed = urlparse(url)
+        if not self.smart_404_fingerprint:
+             await self.detect_smart_404(session, url)
         
         # Network Level Checks (Once per host)
         await self.check_open_ports(url)
@@ -273,7 +221,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
     async def check_cors(self, session, url):
         try:
             headers = {"Origin": "http://evil-scanner.com"}
-            async with session.get(url, headers=headers, timeout=5) as resp:
+            ctx = await self.perform_request(session, 'GET', url, headers=headers, timeout=5)
+            async with ctx as resp:
                 allow_origin = resp.headers.get("Access-Control-Allow-Origin")
                 if allow_origin == "http://evil-scanner.com":
                     self._add_finding("cors_misconfig", url, "Server trustworthy reflected malicious Origin", None, "Origin: http://evil-scanner.com")
@@ -300,7 +249,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
                 
                 try:
-                    async with session.get(test_url, timeout=5) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                    async with ctx as resp:
                         text = await resp.text()
                         if "49" in text: # If 7*7 is evaluated to 49
                              self._add_finding("ssti", url, "Template Expression Evaluated (7*7 -> 49)", param, payload)
@@ -330,7 +280,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
                 
                 try:
-                    async with session.get(test_url, timeout=5) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                    async with ctx as resp:
                         text = await resp.text()
                         # If the payload is reflected EXACTLY as is, it *might* be CSTI.
                         # Stronger check: Look for context (ng-app, etc.) but for now reflection is good.
@@ -363,7 +314,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                             test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
                             
                             try:
-                                async with session.get(test_url, timeout=5) as resp:
+                                ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                                async with ctx as resp:
                                     if resp.status == 200:
                                         # Heuristic: If we get 200 for a different ID, it MIGHT be BOLA.
                                         # Use text diff or regex for PII (SSN, Email) to be sure.
@@ -385,7 +337,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 test_url = urlunparse(parsed._replace(path='/'.join(new_path)))
                 
                 try:
-                    async with session.get(test_url, timeout=5) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                    async with ctx as resp:
                         if resp.status == 200:
                              text = await resp.text()
                              if "SSN" in text or "admin" in text.lower() or "private" in text.lower():
@@ -424,7 +377,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
         for path in admin_paths:
             target = base_url + path
             try:
-                async with session.get(target, timeout=5) as resp:
+                ctx = await self.perform_request(session, 'GET', target, timeout=5)
+                async with ctx as resp:
                     if resp.status == 200:
                         text = await resp.text()
                         # Validate it's not a generic login page or error
@@ -459,7 +413,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 
                 start = time.time()
                 try:
-                    async with session.get(test_url, timeout=10) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=10)
+                    async with ctx as resp:
                         await resp.text()
                         # If response took > 5 seconds, it worked
                         if time.time() - start > 5:
@@ -493,7 +448,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
                 
                 try:
-                    async with session.get(test_url, timeout=5) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                    async with ctx as resp:
                         text = await resp.text()
                         for indicator in lfi_indicators:
                             if indicator in text:
@@ -523,7 +479,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 try:
                     # Debug print to verify traffic
                     # print(f"[DEBUG] RCE Test: {test_url}") 
-                    async with session.get(test_url, timeout=5) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                    async with ctx as resp:
                         text = await resp.text()
                         # print(f"[DEBUG] RCE Resp: {text[:30]}")
                         if "sc_rce_test" in text:
@@ -540,7 +497,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
             # 1. Inspect Headers (Authorization)
             # This is hard because we are the client. We assume we might see JWTs in response headers or body (uncommon)
             # OR we check if the APP sets a cookie that looks like a JWT.
-            async with session.get(url, timeout=5) as resp:
+            ctx = await self.perform_request(session, 'GET', url, timeout=5)
+            async with ctx as resp:
                 cookies = session.cookie_jar.filter_cookies(url)
                 for key, cookie in cookies.items():
                     if cookie.value.count('.') == 2 and (cookie.value.startswith('eyJ') or "bearer" in key.lower()):
@@ -573,7 +531,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
 
     async def check_tech_stack(self, session, url):
         try:
-            async with session.head(url, timeout=5) as resp:
+            ctx = await self.perform_request(session, 'HEAD', url, timeout=5)
+            async with ctx as resp:
                 headers = resp.headers
                 techs = []
                 if "Server" in headers: techs.append(f"Server: {headers['Server']}")
@@ -592,7 +551,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
             "dangerouslySetInnerHTML": "React direct HTML injection"
         }
         try:
-            async with session.get(url, timeout=5) as resp:
+            ctx = await self.perform_request(session, 'GET', url, timeout=5)
+            async with ctx as resp:
                 text = await resp.text()
                 for sink, desc in dangerous_sinks.items():
                     if sink in text:
@@ -619,7 +579,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
                 
                 try:
-                    async with session.get(test_url, timeout=5) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                    async with ctx as resp:
                         # If the page renders generic content + our numbers, it might be a hit.
                         # This is a heuristic: if we see the payload numbers reflected in body
                         text = await resp.text()
@@ -641,11 +602,33 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
             new_query = urlencode(test_params, doseq=True)
             test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
             try:
-                async with session.get(test_url, timeout=5) as resp:
+                ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                async with ctx as resp:
                     text = await resp.text()
                     for error in self.sql_errors:
                         if error in text:
-                            self._add_finding("sql_injection", url, f"Database error: {error}", param, "'")
+                            # Double Verification:
+                            # 1. Trigger Payload: ' (Causes Syntax Error)
+                            # 2. Safe Payload: Original Value (Should be valid)
+                            # Logic: If Trigger causes error AND Safe does NOT, it's SQLi.
+                            
+                            safe_params = params.copy()
+                            safe_params[param] = params[param] # Use original value (e.g., "1")
+                            safe_url = urlunparse(parsed._replace(query=urlencode(safe_params, doseq=True)))
+                            
+                            is_fp = False
+                            try:
+                                ctx = await self.perform_request(session, 'GET', safe_url, timeout=5)
+                                async with ctx as safe_resp:
+                                    safe_text = await safe_resp.text()
+                                    # If the error persists even with valid syntax, the server is just broken/verbose
+                                    if error in safe_text:
+                                        print(f"[-] Discarding SQLi FP at {url}. Error present in benign request.")
+                                        is_fp = True
+                            except: pass
+
+                            if not is_fp:
+                                self._add_finding("sql_injection", url, f"Database error: {error}", param, "'")
                             break
             except: pass
 
@@ -664,21 +647,24 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
         for param in params:
             try:
                 # 1. Baseline Request
-                async with session.get(url, timeout=5) as r1:
+                ctx = await self.perform_request(session, 'GET', url, timeout=5)
+                async with ctx as r1:
                     base_len = len(await r1.text())
 
                 # 2. True Condition
                 test_params = params.copy()
                 test_params[param] = [payload_true] # Simplified injection
                 t_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
-                async with session.get(t_url, timeout=5) as r2:
+                ctx = await self.perform_request(session, 'GET', t_url, timeout=5)
+                async with ctx as r2:
                     true_len = len(await r2.text())
 
                 # 3. False Condition
                 test_params = params.copy()
                 test_params[param] = [payload_false]
                 f_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
-                async with session.get(f_url, timeout=5) as r3:
+                ctx = await self.perform_request(session, 'GET', f_url, timeout=5)
+                async with ctx as r3:
                     false_len = len(await r3.text())
 
                 # Logic: If True is close to Base, but False is significantly different (missing content)
@@ -698,14 +684,16 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
             test_params[param] = [self.xss_test_string]
             test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
             try:
-                async with session.get(test_url, timeout=5) as resp:
+                ctx = await self.perform_request(session, 'GET', test_url, timeout=5)
+                async with ctx as resp:
                     if self.xss_test_string in await resp.text():
                         self._add_finding("xss_reflected", url, "Payload reflected in response", param, self.xss_test_string)
             except: pass
 
     async def check_sensitive_info(self, session, url):
         try:
-            async with session.get(url, timeout=5) as resp:
+            ctx = await self.perform_request(session, 'GET', url, timeout=5)
+            async with ctx as resp:
                 text = await resp.text()
                 for name, pattern in self.sensitive_patterns.items():
                     if re.search(pattern, text):
@@ -714,7 +702,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
 
     async def check_security_headers(self, session, url):
         try:
-            async with session.head(url, timeout=5) as resp:
+            ctx = await self.perform_request(session, 'HEAD', url, timeout=5)
+            async with ctx as resp:
                 headers = resp.headers
                 for h in self.required_headers:
                     if h not in headers:
@@ -726,9 +715,15 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
         for f in self.fuzz_files:
             target = urljoin(base + "/", f)
             try:
-                async with session.get(target, timeout=5) as resp:
-                    if resp.status == 200 and len(await resp.text()) > 0:
-                         self._add_finding("hidden_file", target, f"Accessible file found: {f}")
+                ctx = await self.perform_request(session, 'GET', target, timeout=5)
+                async with ctx as resp:
+                 if resp.status == 200 and len(await resp.text()) > 0:
+                     text = await resp.text()
+                     # Validated against Smart 404
+                     if not self.is_custom_404(resp.status, text):
+                          self._add_finding("hidden_file", target, f"Accessible file found: {f}")
+                     else:
+                          pass # Ignored as 404
             except: pass
 
     async def check_time_based_sqli(self, session, url):
@@ -744,7 +739,8 @@ response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax'
                 
                 start = time.time()
                 try:
-                    async with session.get(test_url, timeout=10) as resp:
+                    ctx = await self.perform_request(session, 'GET', test_url, timeout=10)
+                    async with ctx as resp:
                         await resp.text()
                         if time.time() - start > 5:
                             self._add_finding("blind_sqli", url, f"Response delay > 5s", param, payload)

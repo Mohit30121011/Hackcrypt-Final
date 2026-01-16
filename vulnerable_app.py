@@ -182,6 +182,20 @@ def protected_page(request: Request, id: str = ""):
         return "SECRET_DATA_ACCESS_GRANTED"
     return Response("Unauthorized", status_code=403)
 
+@app.get("/fake-sqli", response_class=HTMLResponse)
+async def fake_sqli(id: str = "1"):
+    # This page prints an SQL error string effectively mimicking a False Positive.
+    # A dumb scanner will flag this. Our Smart Scanner should discard it.
+    return f"""
+    <html>
+    <body>
+        <h1>Product Details</h1>
+        <p>Warning: mysql_fetch_assoc() expects parameter 1 to be resource, boolean given in /var/www/html/product.php</p>
+        <p>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version.</p>
+    </body>
+    </html>
+    """
+
 if __name__ == "__main__":
     import uvicorn
     # Run on Port 8081 to avoid conflict with Scanner (8000) and Dashboard (3000)

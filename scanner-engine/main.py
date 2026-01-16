@@ -38,6 +38,8 @@ class ScanRequest(BaseModel):
     login_url: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
+    auth_mode: str = "auto" # 'auto' (headless) or 'interactive' (headful)
+    stealth_mode: bool = False # Enable WAF evasion (delays + jitter)
 
 class Finding(BaseModel):
     type: str
@@ -59,45 +61,51 @@ class ScanResponse(BaseModel):
     error: Optional[str] = None
 
 # --- Background Task ---
-async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None, username: str = None, password: str = None):
+async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None, username: str = None, password: str = None, auth_mode: str = "auto", stealth_mode: bool = False):
     # Initialize Session
     session = None
-    if login_url and username and password:
+    if login_url:
         try:
             auth = Authenticator()
-            session = await auth.login(login_url, username, password)
+            if auth_mode == "interactive":
+                session = await auth.interactive_login(login_url)
+            elif username and password:
+                session = await auth.login(login_url, username, password)
+            else:
+                 print("[!] Auto-login requires username & password, but they were missing. Proceeding unauthenticated.")
+                 session = aiohttp.ClientSession()
         except Exception as e:
             print(f"[!] Auth Failed: {e}")
             session = aiohttp.ClientSession() # Fallback to unauthenticated
     else:
         session = aiohttp.ClientSession()
 
-    scan_results[scan_id]["status"] = "Crawling"
-    
     try:
-        # 1. Crawl
-        try:
-            spider = Spider(url, max_pages)
-            attack_surface = await spider.crawl(session)
-            scan_results[scan_id]["crawled_urls"] = attack_surface
-        except Exception as e:
-            import traceback
-            error_msg = f"{str(e)}\n{traceback.format_exc()}"
-            print(f"[!] Scan Error: {error_msg}")
-            scan_results[scan_id]["status"] = "Error"
-            scan_results[scan_id]["error"] = str(e)
-            return
-
-        # 2. Scan
+        # Crawling (Spider)
+        spider = Spider(url, max_pages)
+        crawled_urls = await spider.crawl(session_ignored=session)
+        
+        # Scanning (VulnerabilityScanner)
+        scanner = VulnerabilityScanner(stealth_mode=stealth_mode)
+        
+        # Update status to Scanning
         scan_results[scan_id]["status"] = "Scanning"
-        scanner = VulnerabilityScanner()
+        scan_results[scan_id]["crawled_urls"] = crawled_urls
+        
         # Link findings list immediately for real-time updates
         scan_results[scan_id]["findings"] = scanner.findings
         
-        for link in attack_surface:
+        for link in crawled_urls:
             await scanner.scan_url(link, session)
             
         scan_results[scan_id]["status"] = "Completed"
+
+    except Exception as e:
+        import traceback
+        error_msg = f"{str(e)}\n{traceback.format_exc()}"
+        print(f"[!] Scan Error: {error_msg}")
+        scan_results[scan_id]["status"] = "Error"
+        scan_results[scan_id]["error"] = str(e)
 
     finally:
         if session:
@@ -107,15 +115,17 @@ async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None
 
 @app.post("/scan", response_model=ScanResponse)
 async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
+    print(f"[DEBUG] Received Scan Request: {request}")
     scan_id = str(uuid.uuid4())
     scan_results[scan_id] = {
         "status": "Pending",
         "target": request.url,
         "crawled_urls": [],
-        "findings": []
+        "findings": [],
+        "error": None
     }
     
-    background_tasks.add_task(run_scan, scan_id, request.url, request.max_pages, request.login_url, request.username, request.password)
+    background_tasks.add_task(run_scan, scan_id, request.url, request.max_pages, request.login_url, request.username, request.password, request.auth_mode, request.stealth_mode)
     
     return {"scan_id": scan_id, "status": "Pending"}
 
@@ -141,3 +151,10 @@ async def get_scan_report(scan_id: str):
     pdf.generate(scan_data, filepath)
     
     return FileResponse(filepath, media_type='application/pdf', filename=filename)
+
+if __name__ == "__main__":
+    import uvicorn
+    # Enforce Proactor for Windows + Playwright
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
