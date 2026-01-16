@@ -1,17 +1,35 @@
 "use client";
 
-import { Shield, Command, Activity, Lock, Smartphone } from "lucide-react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { Activity, Lock, LogOut } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
-interface SidebarProps {
-    activeItem: string;
-}
+export default function Sidebar() {
+    const pathname = usePathname();
+    const router = useRouter();
+    const activeItem = pathname === "/" ? "Dashboard" : pathname === "/history" ? "History" : pathname.includes("enclave") ? "Secure Enclave" : "";
+    const [user, setUser] = useState<any>(null);
 
-export function Sidebar({ activeItem }: SidebarProps) {
+    useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        fetchUser();
+    }, []);
+
+    const handleSignOut = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push("/login");
+    };
+
     const navItems = [
-        { name: "Dashboard", icon: Command, href: "/", gradient: "from-purple-500/20 to-blue-500/20" },
-        { name: "Live Activity", icon: Activity, href: "/live-activity", gradient: "from-purple-500/20 to-blue-500/20" },
+        { name: "Dashboard", icon: Activity, href: "/", gradient: "from-blue-500/20 to-cyan-500/20" },
         { name: "History", icon: Activity, href: "/history", gradient: "from-purple-500/20 to-blue-500/20" },
         { name: "Secure Enclave", icon: Lock, href: "/enclave", gradient: "from-purple-500/20 to-blue-500/20" },
     ];
@@ -20,8 +38,7 @@ export function Sidebar({ activeItem }: SidebarProps) {
         <div className="w-[300px] glass-card rounded-[40px] p-8 flex flex-col justify-between hidden lg:flex">
             <div>
                 {/* Logo Section */}
-                {/* Logo Section */}
-                <div className="flex items-center justify-center mb-16 py-8">
+                <div className="flex items-center justify-center mb-2 mt-4">
                     <Image
                         src="/logo.png"
                         alt="Scancrypt Logo"
@@ -57,19 +74,42 @@ export function Sidebar({ activeItem }: SidebarProps) {
                 </nav>
             </div>
 
-            {/* Admin User Card */}
-            <div className="p-5 rounded-[32px] bg-[#0A0A0A] border border-white/5 group hover:border-white/10 transition-colors cursor-pointer">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 p-[2px]">
-                        <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-xs font-bold text-white">AD</div>
+            {/* User Profile Card */}
+            {user && (
+                <div className="relative group bg-white/5 rounded-[32px] p-4 transition-all hover:bg-white/10 border border-white/5 hover:border-white/10">
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 to-purple-500 rounded-full blur-[2px] animate-spin-slow" />
+                            <Image
+                                src={user.user_metadata?.avatar_url || "/placeholder-user.jpg"}
+                                alt="User"
+                                width={48}
+                                height={48}
+                                className="rounded-full relative z-10 border-2 border-black object-cover"
+                            />
+                            {/* Online Dot */}
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#09090b] rounded-full z-20"></div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-white truncate text-sm">
+                                {user.user_metadata?.full_name || "Agent"}
+                            </h3>
+                            <p className="text-white/40 text-xs truncate">{user.email}</p>
+                        </div>
+
+                        <button
+                            onClick={handleSignOut}
+                            className="text-white/40 hover:text-red-400 transition-colors p-2"
+                            title="Sign Out"
+                        >
+                            <LogOut size={18} />
+                        </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white group-hover:text-white/90 truncate">Admin User</p>
-                        <p className="text-xs text-white/30 truncate">Pro License</p>
-                    </div>
-                    <Smartphone className="w-4 h-4 text-white/20" />
                 </div>
-            </div>
+            )}
+            {!user && (
+                <div className="animate-pulse h-16 bg-white/5 rounded-[32px]"></div>
+            )}
         </div>
     );
 }
