@@ -1,33 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { ScanResults } from "@/components/ScanResults";
-import { Shield, Search, Activity, Terminal } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, Activity, Lock, Smartphone, Globe, ChevronRight, Command, Key, User, Eye, EyeOff } from "lucide-react";
+import { saveScan } from "@/lib/scanStorage";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function Home() {
+  const router = useRouter();
   const [targetUrl, setTargetUrl] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Auth config
+  const [showAuthConfig, setShowAuthConfig] = useState(false);
+  const [authMode, setAuthMode] = useState<"auto" | "interactive">("auto");
   const [loginUrl, setLoginUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [authMode, setAuthMode] = useState("auto"); // 'auto' or 'interactive'
-  const [isStealth, setIsStealth] = useState(false); // New Stealth Mode State
-  const [showAuth, setShowAuth] = useState(false);
-  const [scanId, setScanId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const startScan = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Stealth mode
+  const [isStealth, setIsStealth] = useState(true);
+
+  const handleScan = async () => {
     if (!targetUrl) return;
 
-    setIsLoading(true);
+    setIsScanning(true);
+
     try {
-      const payload: any = { url: targetUrl, stealth_mode: isStealth };
-      if (showAuth && loginUrl) {
+      const payload: any = {
+        url: targetUrl,
+        stealth_mode: isStealth
+      };
+
+      if (showAuthConfig && loginUrl) {
         payload.login_url = loginUrl;
-        payload.auth_mode = authMode;
-        if (authMode === "auto" && username && password) {
+        if (authMode === "auto") {
           payload.username = username;
           payload.password = password;
+        } else {
+          payload.interactive_auth = true;
         }
       }
 
@@ -36,166 +50,261 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const data = await res.json();
-      setScanId(data.scan_id);
+
+      saveScan({
+        id: data.scan_id,
+        target: targetUrl,
+        timestamp: Date.now(),
+        duration: 0,
+        status: "Scanning",
+        crawledUrls: [],
+        findings: [],
+        config: {
+          stealth: isStealth,
+          auth: showAuthConfig ? authMode : undefined
+        }
+      });
+
+      // Redirect to Live Activity page
+      router.push(`/live-activity?scanId=${data.scan_id}`);
     } catch (err) {
-      console.error("Failed to start scan:", err);
-      alert("Failed to start scan. Is the backend running?");
-    } finally {
-      setIsLoading(false);
+      console.error("Scan error:", err);
+      setError("Failed to start scan. Make sure backend is running.");
+      setIsScanning(false);
+      setTimeout(() => setError(null), 5000); // Auto-dismiss after 5s
     }
   };
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 font-sans selection:bg-cyan-500/30">
-      <div className="absolute inset-0 -z-10 h-full w-full bg-neutral-950 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+    <main className="min-h-screen flex items-center justify-center p-4 lg:p-8 relative overflow-hidden bg-black selection:bg-purple-500/30">
+      {/* Aurora Background Elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] bg-emerald-600/5 rounded-full blur-[120px]" />
+      </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* Header */}
-        <header className="mb-12 text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-800/50 text-cyan-400 text-sm font-medium">
-            <Shield className="w-4 h-4" />
-            <span>Defensive Security Scanner</span>
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50"
+          >
+            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-red-500/20 border border-red-500/30 backdrop-blur-xl shadow-2xl">
+              <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+              <span className="text-sm font-medium text-red-200">{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="ml-2 text-red-300 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Container */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full h-full glass-panel rounded-[32px] md:rounded-[48px] p-3 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
+      >
+        {/* Sidebar */}
+        <Sidebar activeItem="Dashboard" />
+
+        {/* Main Content */}
+        <div className="flex-1 rounded-[40px] bg-[#0A0A0A]/50 relative overflow-y-auto glass-scrollbar p-8 lg:p-12 pt-20 flex flex-col items-center justify-start">
+
+          {/* Dynamic Status Pill */}
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="absolute top-8 left-1/2 -translate-x-1/2"
+          >
+            {isStealth && (
+              <div className="px-4 py-1.5 rounded-full bg-[#1A1A1A] border border-white/10 flex items-center gap-3 shadow-2xl backdrop-blur-xl">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_#a855f7]" />
+                <span className="text-[10px] font-bold tracking-[0.15em] text-white/60 uppercase">Stealth Active</span>
+              </div>
+            )}
+          </motion.div>
+
+          <div className="w-full max-w-2xl text-center mb-12 mt-8">
+            <h2 className="text-5xl lg:text-7xl font-bold mb-6 tracking-tight text-white drop-shadow-2xl">
+              Safety First.
+            </h2>
+            <p className="text-lg text-white/40 font-medium tracking-wide">
+              Next-generation vulnerability scanning for the modern web.
+            </p>
           </div>
-          <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent">
-            Vulnerability Scanner
-          </h1>
-          <p className="text-neutral-400 max-w-lg mx-auto text-lg">
-            Automated DAST engine to detect SQL Injection, XSS, and Sensitive Data Exposure in real-time.
-          </p>
-        </header>
 
-        {/* Input Section */}
-        <div className="max-w-2xl mx-auto mb-16">
-          <form onSubmit={startScan} className="relative group space-y-4">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
-            <div className="relative flex flex-col bg-neutral-900 rounded-xl border border-neutral-800 p-2 shadow-2xl">
-              <div className="flex items-center">
-                <div className="pl-4 text-neutral-500">
-                  <Search className="w-5 h-5" />
+          <div className="w-full max-w-2xl space-y-6">
+            {/* Search Bar */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-[32px] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative flex items-center bg-[#151515] border border-white/10 rounded-[32px] p-2 pr-2 shadow-2xl focus-within:border-white/20 focus-within:bg-[#1A1A1A] transition-all duration-300">
+                <div className="pl-6 pr-4 text-white/30">
+                  <Globe className="w-6 h-6" />
                 </div>
                 <input
-                  type="url"
-                  placeholder="Enter target URL (e.g., http://localhost:8000)"
+                  type="text"
+                  placeholder="https://target.url"
                   value={targetUrl}
                   onChange={(e) => setTargetUrl(e.target.value)}
-                  className="w-full bg-transparent border-none focus:ring-0 text-white placeholder-neutral-500 text-lg px-4 py-2"
-                  required
+                  onKeyDown={(e) => e.key === "Enter" && handleScan()}
+                  className="w-full bg-transparent border-none text-white px-2 py-5 outline-none focus:outline-none focus:ring-0 placeholder:text-white/20 text-xl font-medium tracking-tight"
+                  disabled={isScanning}
                 />
                 <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-6 py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[140px] justify-center"
+                  onClick={handleScan}
+                  disabled={isScanning || !targetUrl}
+                  className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                 >
-                  {isLoading ? (
-                    <>
-                      <Activity className="w-5 h-5 animate-spin" />
-                      <span>Initing...</span>
-                    </>
+                  {isScanning ? (
+                    <div className="w-6 h-6 border-3 border-black/30 border-t-black rounded-full animate-spin" />
                   ) : (
-                    <>
-                      <Terminal className="w-5 h-5" />
-                      <span>Start Scan</span>
-                    </>
+                    <ChevronRight className="w-8 h-8 ml-0.5" />
                   )}
                 </button>
               </div>
-
-              {/* Advanced Settings Toggles (Auth + Stealth) */}
-              <div className="px-4 py-3 border-t border-neutral-800 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  {/* Auth Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setShowAuth(!showAuth)}
-                    className={`text-sm font-medium transition-colors flex items-center gap-2 ${showAuth ? "text-cyan-400" : "text-neutral-500 hover:text-neutral-300"
-                      }`}
-                  >
-                    {showAuth ? "[-] Configure Authentication" : "[+] Configure Authentication"}
-                  </button>
-
-                  {/* Stealth Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setIsStealth(!isStealth)}
-                    className={`text-sm font-medium transition-colors flex items-center gap-2 ${isStealth ? "text-emerald-400" : "text-neutral-500 hover:text-neutral-300"
-                      }`}
-                  >
-                    <div className={`w-3 h-3 rounded-full ${isStealth ? "bg-emerald-500 animate-pulse" : "bg-neutral-600"}`}></div>
-                    {isStealth ? "Stealth Mode: ON 🥷" : "Stealth Mode: OFF"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Auth Config Panel */}
-              {showAuth && (
-                <div className="px-6 py-6 border-t border-neutral-800 bg-neutral-900/50 space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <input
-                    type="url"
-                    placeholder="Login Page URL (e.g. http://site.com/login)"
-                    className="bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-300 focus:border-cyan-500 outline-none w-full"
-                    value={loginUrl}
-                    onChange={(e) => setLoginUrl(e.target.value)}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="Username"
-                      className="bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-300 focus:border-cyan-500 outline-none"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      className="bg-neutral-950 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-300 focus:border-cyan-500 outline-none"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Auth Mode Selection */}
-                  <div className="flex gap-4 mt-2 p-1 bg-neutral-900 border border-neutral-800 rounded-lg">
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode("auto")}
-                      className={`flex-1 py-1.5 text-xs font-medium rounded transition-all ${authMode === "auto"
-                          ? "bg-cyan-900/50 text-cyan-200 shadow-sm"
-                          : "text-neutral-500 hover:text-neutral-300"
-                        }`}
-                    >
-                      Auto Login (Headless)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode("interactive")}
-                      className={`flex-1 py-1.5 text-xs font-medium rounded transition-all ${authMode === "interactive"
-                          ? "bg-purple-900/50 text-purple-200 shadow-sm"
-                          : "text-neutral-500 hover:text-neutral-300"
-                        }`}
-                    >
-                      Interactive (Browser Hook)
-                    </button>
-                  </div>
-
-                  {authMode === "interactive" && (
-                    <p className="text-[10px] text-purple-400/80 px-1">
-                      * A real browser window will open. You must log in manually within 60s.
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
 
-            <p className="mt-3 text-center text-neutral-500 text-xs">
-              * Ensure you have permission to scan the target.
-            </p>
-          </form>
-        </div>
+            {/* Stealth Mode Card */}
+            <div className="bg-[#151515] border border-white/5 rounded-[32px] p-6 flex items-center justify-between group hover:border-white/10 transition-all cursor-pointer" onClick={() => setIsStealth(!isStealth)}>
+              <div className="flex items-center gap-5">
+                <div className={`w-12 h-12 rounded-[20px] flex items-center justify-center transition-colors duration-300 ${isStealth ? "bg-purple-500/20" : "bg-white/5"}`}>
+                  <Eye className={`w-6 h-6 ${isStealth ? "text-purple-400" : "text-white/30"}`} />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-white mb-0.5">Stealth Mode</p>
+                  <p className="text-sm text-white/40 font-medium">Evade WAF & Rate Limits</p>
+                </div>
+              </div>
+              <div className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${isStealth ? "bg-purple-500" : "bg-white/10"}`}>
+                <motion.div
+                  className="w-6 h-6 bg-white rounded-full shadow-lg"
+                  animate={{ x: isStealth ? 24 : 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                />
+              </div>
+            </div>
 
-        {/* Results Section */}
-        {scanId && <ScanResults scanId={scanId} />}
-      </div>
+            {/* Authentication Card */}
+            <div className="bg-[#151515] border border-white/5 rounded-[32px] overflow-hidden">
+              <div
+                className="p-6 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+                onClick={() => setShowAuthConfig(!showAuthConfig)}
+              >
+                <div className="flex items-center gap-5">
+                  <div className={`w-12 h-12 rounded-[20px] flex items-center justify-center transition-colors duration-300 ${showAuthConfig ? "bg-blue-500/20" : "bg-white/5"}`}>
+                    <Lock className={`w-6 h-6 ${showAuthConfig ? "text-blue-400" : "text-white/30"}`} />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-white mb-0.5">Authentication</p>
+                    <p className="text-sm text-white/40 font-medium">{showAuthConfig ? "Configured" : "Not configured"}</p>
+                  </div>
+                </div>
+                <ChevronRight className={`w-6 h-6 text-white/20 transition-transform duration-300 ${showAuthConfig ? "rotate-90" : ""}`} />
+              </div>
+
+              <AnimatePresence>
+                {showAuthConfig && (
+                  <motion.div
+                    layout
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="px-6 pb-6 space-y-4 overflow-hidden"
+                  >
+                    <div className="h-px w-full bg-white/5 mb-4" />
+
+                    <div className="flex bg-black/40 rounded-[24px] p-1 mb-4 relative z-0">
+                      {(["auto", "interactive"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setAuthMode(mode)}
+                          className={`flex-1 relative py-3 rounded-[20px] text-sm font-semibold transition-colors z-10 flex items-center justify-center ${authMode === mode ? "text-white" : "text-white/40 hover:text-white"
+                            }`}
+                        >
+                          {authMode === mode && (
+                            <motion.div
+                              layoutId="authTab"
+                              className="absolute inset-0 bg-white/10 rounded-[20px]"
+                              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                            />
+                          )}
+                          <span className="relative z-10">
+                            {mode === "auto" ? "Auto Login" : "Interactive"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={loginUrl}
+                      onChange={(e) => setLoginUrl(e.target.value)}
+                      placeholder="Login URL (e.g. site.com/login)"
+                      className="w-full bg-black/40 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none"
+                    />
+
+                    <AnimatePresence mode="popLayout">
+                      {authMode === "auto" && (
+                        <motion.div
+                          key="auto-fields"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25, ease: "easeInOut" }}
+                          className="grid grid-cols-2 gap-4 overflow-hidden"
+                        >
+                          <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Username"
+                            className="w-full bg-black/40 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none"
+                          />
+                          <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Password"
+                            className="w-full bg-black/40 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "READY", value: "100%", color: "text-blue-400" },
+                { label: "SECURE", value: "SSL", color: "text-green-400" },
+                { label: "MODE", value: isStealth ? "STH" : "STD", color: isStealth ? "text-purple-400" : "text-white" },
+              ].map((stat, i) => (
+                <div key={i} className="bg-[#151515] border border-white/5 rounded-[28px] p-5 text-center flex flex-col items-center justify-center">
+                  <p className="text-[10px] font-bold tracking-[0.2em] text-white/30 mb-2">{stat.label}</p>
+                  <p className={`text-2xl font-bold ${stat.color} text-glow`}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </motion.div>
     </main>
   );
 }

@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  --font-body: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-3xl border border-white/10 shadow-2xl;
+  }
+
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/5 hover:bg-white/10 transition-all duration-300;
+  }
+
+  .glass-button {
+    @apply bg-white/10 hover:bg-white/20 active:bg-white/30 backdrop-blur-md border border-white/20 transition-all duration-200;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+
+  .aurora-bg {
+    background:
+      radial-gradient(at 0% 0%, rgba(29, 78, 216, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Custom Scrollbar for Glass UI */
+  .glass-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .glass-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .glass-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #050505;
+  /* Deep black for better contrast */
+  color: white;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  letter-spacing: -0.011em;
+  /* Tighter tracking like iOS */
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.022em;
 }

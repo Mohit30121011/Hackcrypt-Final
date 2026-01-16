@@ -13,7 +13,11 @@ class Spider:
         self.domain = urlparse(start_url).netloc
         
     def _is_internal(self, url: str) -> bool:
-        return urlparse(url).netloc == self.domain
+        netloc = urlparse(url).netloc
+        # Handle localhost/127.0.0.1 mismatch
+        if "localhost" in self.domain and "127.0.0.1" in netloc: return True
+        if "127.0.0.1" in self.domain and "localhost" in netloc: return True
+        return netloc == self.domain
 
     async def crawl(self, session_ignored=None) -> List[str]:
         """
@@ -44,7 +48,7 @@ class Spider:
                 try:
                     # Navigate and Wait for Network Idle (critical for SPAs)
                     # 'domcontentloaded' is faster, 'networkidle' is safer for heavy SPAs
-                    await page.goto(url, timeout=15000, wait_until="domcontentloaded")
+                    await page.goto(url, timeout=15000, wait_until="networkidle")
                     self.visited_urls.add(url)
                     
                     # Extract Links from DOM using JS evaluation
@@ -52,6 +56,7 @@ class Spider:
                     links = await page.evaluate("""
                         () => Array.from(document.querySelectorAll('a')).map(a => a.href)
                     """)
+                    print(f"[*] Extracted {len(links)} raw links from {url}")
                     
                     for full_url in links:
                         # Normalize
@@ -65,6 +70,8 @@ class Spider:
                              self.found_links.add(clean_url)
                              if clean_url not in self.visited_urls and clean_url not in queue:
                                  queue.append(clean_url)
+                        else:
+                             pass # print(f"Skipping external: {clean_url}")
                                  
                 except Exception as e:
                     print(f"[!] Error crawling {url}: {e}")

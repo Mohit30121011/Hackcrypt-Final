@@ -105,7 +105,7 @@ async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None
         error_msg = f"{str(e)}\n{traceback.format_exc()}"
         print(f"[!] Scan Error: {error_msg}")
         scan_results[scan_id]["status"] = "Error"
-        scan_results[scan_id]["error"] = str(e)
+        scan_results[scan_id]["error"] = error_msg
 
     finally:
         if session:
@@ -140,11 +140,17 @@ async def get_scan_report(scan_id: str):
     if scan_id not in scan_results:
         raise HTTPException(status_code=404, detail="Scan not found")
     
-    scan_data = scan_results[scan_id]
-    
-    # Generate PDF name
-    filename = f"report_{scan_id}.pdf"
-    filepath = os.path.join(os.getcwd(), filename)
+    # Check if report exists
+    report_path = f"report_{scan_id}.pdf"
+    if not os.path.exists(report_path):
+         raise HTTPException(status_code=404, detail="Report not generating or failed.")
+         
+    return FileResponse(report_path, media_type="application/pdf", filename=f"security_report_{scan_id}.pdf")
+
+@app.get("/debug/scans")
+async def get_all_scans():
+    return scan_results
+
     
     # Generate and serve
     pdf = PDFReport()

@@ -225,7 +225,15 @@ export function ScanResults({ scanId }: { scanId: string }) {
 }
 
 // ... unchanged StatusCard and ActivityIcon ...
-function StatusCard({ label, value, icon, active = false, danger = false }: any) {
+interface StatusCardProps {
+    label: string;
+    value: string | number;
+    icon: React.ElementType;
+    active?: boolean;
+    danger?: boolean;
+}
+
+function StatusCard({ label, value, icon, active = false, danger = false }: StatusCardProps) {
     return (
         <div className={`
       relative overflow-hidden p-5 rounded-xl border

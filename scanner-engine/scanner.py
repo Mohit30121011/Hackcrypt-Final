@@ -49,27 +49,174 @@ class VulnerabilityScanner:
         
         # Knowledge Base for Reporting
         self.kb = {
-            "sql_injection": {"name": "SQL Injection", "severity": "High", "cwe": "CWE-89", "description": "Untrusted input interferes with a database query.", "remediation": "Use parameterized queries."},
-            "xss_reflected": {"name": "Reflected XSS", "severity": "Medium", "cwe": "CWE-79", "description": "Reflects untrusted data without escaping.", "remediation": "Use output encoding."},
-            "sensitive_data": {"name": "Sensitive Data Exposure", "severity": "Low", "cwe": "CWE-200", "description": "Exposes sensitive information.", "remediation": "Remove from responses."},
-            "security_header": {"name": "Missing Security Header", "severity": "Low", "cwe": "CWE-693", "description": "Missing HTTP security headers.", "remediation": "Configure strict headers."},
-            "hidden_file": {"name": "Hidden File Exposure", "severity": "High", "cwe": "CWE-538", "description": "Sensitive file accessible.", "remediation": "Remove from web root."},
-            "blind_sqli": {"name": "Blind SQL Injection", "severity": "Critical", "cwe": "CWE-89", "description": "Time-based SQL injection.", "remediation": "Use parameterized queries."},
-            "union_sqli": {"name": "UNION SQLi", "severity": "Critical", "cwe": "CWE-89", "description": "UNION-based SQL injection.", "remediation": "Use parameterized queries."},
-            "dom_xss": {"name": "DOM XSS", "severity": "Medium", "cwe": "CWE-79", "description": "Dangerous JS sinks found.", "remediation": "Avoid innerHTML, eval()."},
-            "tech_stack": {"name": "Tech Stack Disclosure", "severity": "Info", "cwe": "CWE-200", "description": "Discloses tech versions.", "remediation": "Suppress Server headers."},
-            "lfi": {"name": "Local File Inclusion", "severity": "Critical", "cwe": "CWE-22", "description": "Reads arbitrary files.", "remediation": "Validate against whitelist."},
-            "ssti": {"name": "Server-Side Template Injection", "severity": "Critical", "cwe": "CWE-1336", "description": "Template engine RCE.", "remediation": "Sandbox templates."},
-            "cors_misconfig": {"name": "CORS Misconfiguration", "severity": "High", "cwe": "CWE-346", "description": "Accepts arbitrary origins.", "remediation": "Whitelist trusted origins."},
-            "open_port": {"name": "Open Port", "severity": "Info", "cwe": "CWE-200", "description": "Non-standard port open.", "remediation": "Close via firewall."},
-            "csti": {"name": "Client-Side Template Injection", "severity": "High", "cwe": "CWE-79", "description": "Reflected in client templates.", "remediation": "Escape user input."},
-            "blind_rce": {"name": "Blind RCE", "severity": "Critical", "cwe": "CWE-78", "description": "Executes commands (time delay).", "remediation": "Avoid system calls."},
-            "rce": {"name": "Remote Code Execution", "severity": "Critical", "cwe": "CWE-78", "description": "Executes arbitrary commands.", "remediation": "Never pass user input to system."},
-            "bola": {"name": "BOLA/IDOR", "severity": "High", "cwe": "CWE-639", "description": "Access to other users' objects.", "remediation": "Implement authorization checks."},
-            "bac": {"name": "Broken Access Control", "severity": "High", "cwe": "CWE-285", "description": "Unprivileged access to admin pages.", "remediation": "Enforce RBAC."},
-            "jwt_none": {"name": "Insecure JWT (alg:none)", "severity": "Critical", "cwe": "CWE-327", "description": "JWT signature bypass.", "remediation": "Reject 'none' algorithm."},
-            "cookie_insecure": {"name": "Insecure Cookie Flags", "severity": "Low", "cwe": "CWE-1275", "description": "Missing Secure/HttpOnly flags.", "remediation": "Set cookie flags properly."},
-            "weak_crypto": {"name": "Weak Cryptography", "severity": "Medium", "cwe": "CWE-327", "description": "Weak crypto algorithms.", "remediation": "Use AES-256, SHA-256."}
+            "sql_injection": {
+                "name": "SQL Injection", 
+                "severity": "High", 
+                "cwe": "CWE-89", 
+                "description": "Untrusted input interferes with a database query.", 
+                "remediation": "Use parameterized queries (e.g., PreparedStatement in Java, parameterized queries in Python/PHP).",
+                "remediation_code": "cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))"
+            },
+            "xss_reflected": {
+                "name": "Reflected XSS", 
+                "severity": "Medium", 
+                "cwe": "CWE-79", 
+                "description": "Reflects untrusted data without escaping.", 
+                "remediation": "Context-aware output encoding.",
+                "remediation_code": "return <div>{user_input}</div>; // React escapes by default"
+            },
+            "sensitive_data": {
+                "name": "Sensitive Data Exposure", 
+                "severity": "Low", 
+                "cwe": "CWE-200", 
+                "description": "Exposes sensitive info (API keys, passwords).", 
+                "remediation": "Remove sensitive headers and data from responses.",
+                "remediation_code": "# Remove 'Server' header\nresponse.headers['Server'] = ''"
+            },
+            "security_header": {
+                "name": "Missing Security Header", 
+                "severity": "Low", 
+                "cwe": "CWE-693", 
+                "description": "Missing HTTP security headers (CSP, HSTS).", 
+                "remediation": "Configure strict headers.",
+                "remediation_code": "add_header X-Frame-Options SAMEORIGIN;\nadd_header Content-Security-Policy \"default-src 'self'\""
+            },
+            "hidden_file": {
+                "name": "Hidden File Exposure", 
+                "severity": "High", 
+                "cwe": "CWE-538", 
+                "description": "Sensitive file (e.g. .env, .git) accessible.", 
+                "remediation": "Deny access to hidden files in Nginx/Apache.",
+                "remediation_code": "location ~ /\\. { deny all; return 404; }"
+            },
+            "blind_sqli": {
+                "name": "Blind SQL Injection", 
+                "severity": "Critical", 
+                "cwe": "CWE-89", 
+                "description": "Evaluation of logic/time delays via SQL injection.", 
+                "remediation": "Use parameterized queries.",
+                "remediation_code": "cursor.execute('SELECT * FROM items WHERE type = ?', [user_type])"
+            },
+            "union_sqli": {
+                "name": "UNION SQLi", 
+                "severity": "Critical", 
+                "cwe": "CWE-89", 
+                "description": "Retrieving data from other tables via UNION.", 
+                "remediation": "Use parameterized queries.",
+                "remediation_code": "db.query('SELECT name, email FROM users WHERE id = $1', [id])"
+            },
+            "dom_xss": {
+                "name": "DOM XSS", 
+                "severity": "Medium", 
+                "cwe": "CWE-79", 
+                "description": "Dangerous Sink (innerHTML/eval) with user input.", 
+                "remediation": "Avoid innerHTML. Use textContent.",
+                "remediation_code": "element.textContent = user_input; // Safe"
+            },
+            "tech_stack": {
+                "name": "Tech Stack Disclosure", 
+                "severity": "Info", 
+                "cwe": "CWE-200", 
+                "description": "Version information leaked headers.", 
+                "remediation": "Disable server signature tokens.",
+                "remediation_code": "server_tokens off; // Nginx"
+            },
+            "lfi": {
+                "name": "Local File Inclusion", 
+                "severity": "Critical", 
+                "cwe": "CWE-22", 
+                "description": "Reading local files via directory traversal.", 
+                "remediation": "Validate filenames against an allowlist.",
+                "remediation_code": "if filename not in ['page1.html', 'page2.html']: abort(403)"
+            },
+            "ssti": {
+                "name": "Server-Side Template Injection", 
+                "severity": "Critical", 
+                "cwe": "CWE-1336", 
+                "description": "User input evaluated by template engine.", 
+                "remediation": "Pass input as data not template string.",
+                "remediation_code": "template.render(user_input=data) # Safe"
+            },
+            "cors_misconfig": {
+                "name": "CORS Misconfiguration", 
+                "severity": "High", 
+                "cwe": "CWE-346", 
+                "description": "Accepts arbitrary or null origins.", 
+                "remediation": "Whitelist specific trusted domains.",
+                "remediation_code": "Access-Control-Allow-Origin: https://trusted.com"
+            },
+            "open_port": {
+                "name": "Open Port", 
+                "severity": "Info", 
+                "cwe": "CWE-200", 
+                "description": "Unnecessary port exposed.", 
+                "remediation": "Close port or restrict with firewall.",
+                "remediation_code": "ufw deny 8080/tcp"
+            },
+            "csti": {
+                "name": "Client-Side Template Injection", 
+                "severity": "High", 
+                "cwe": "CWE-79", 
+                "description": "Angular/Vue template injection.", 
+                "remediation": "Use v-pre or ng-non-bindable.",
+                "remediation_code": "<span v-pre>{{ user_input }}</span>"
+            },
+            "blind_rce": {
+                "name": "Blind RCE", 
+                "severity": "Critical", 
+                "cwe": "CWE-78", 
+                "description": "Command execution verified via time delay.", 
+                "remediation": "Avoid system calls. Use library functions.",
+                "remediation_code": "subprocess.run(['ls', '-l']) # No shell=True"
+            },
+            "rce": {
+                "name": "Remote Code Execution", 
+                "severity": "Critical", 
+                "cwe": "CWE-78", 
+                "description": "Executing arbitrary system commands.", 
+                "remediation": "Never use shell=True with user input.",
+                "remediation_code": "import subprocess; subprocess.run(['echo', user_input])"
+            },
+            "bola": {
+                "name": "BOLA/IDOR", 
+                "severity": "High", 
+                "cwe": "CWE-639", 
+                "description": "Accessing other users' resources via ID manipulation.", 
+                "remediation": "Check ownership before access.",
+                "remediation_code": "if resource.owner_id != current_user.id: raise Forbidden()"
+            },
+            "bac": {
+                "name": "Broken Access Control", 
+                "severity": "High", 
+                "cwe": "CWE-285", 
+                "description": "Unprivileged access to admin areas.", 
+                "remediation": "Enforce role-based access control (RBAC).",
+                "remediation_code": "@requires_role('admin')"
+            },
+            "jwt_none": {
+                "name": "Insecure JWT (alg:none)", 
+                "severity": "Critical", 
+                "cwe": "CWE-327", 
+                "description": "JWT accepts 'none' algorithm (signature bypass).", 
+                "remediation": "Explicitly reject 'none' algorithm.",
+                "remediation_code": "jwt.decode(token, key, algorithms=['HS256'])"
+            },
+            "cookie_insecure": {
+                "name": "Insecure Cookie Flags", 
+                "severity": "Low", 
+                "cwe": "CWE-1275", 
+                "description": "Missing Secure, HttpOnly, or SameSite attributes.", 
+                "remediation": "Set attributes on cookie creation.",
+                "remediation_code": "response.set_cookie(key, value, secure=True, httponly=True, samesite='Strict')"
+            },
+            "weak_crypto": {
+                "name": "Weak Cryptography", 
+                "severity": "Medium", 
+                "cwe": "CWE-327", 
+                "description": "Use of weak algorithms (MD5, SHA1) or keys.", 
+                "remediation": "Use strong standard algorithms (AES-256-GCM, SHA-256).",
+                "remediation_code": "hashlib.sha256(data).hexdigest()"
+            }
         }
         
     async def perform_request(self, session, method, url, **kwargs):
