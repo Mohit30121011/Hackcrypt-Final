@@ -37,14 +37,21 @@ class VulnerabilityScanner:
                 "severity": "High",
                 "cwe": "CWE-89",
                 "description": "The application allows untrusted user input to interfere with a database query. This could allow an attacker to view, modify, or delete data.",
-                "remediation": "Use parameterized queries (Prepared Statements) for all database access. Validate and sanitize all user input."
+                "remediation": "Use parameterized queries (Prepared Statements) for all database access. Validate and sanitize all user input.",
+                "remediation_code": """# Python (Secure)
+cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))"""
             },
             "xss_reflected": {
                 "name": "Reflected Cross-Site Scripting (XSS)",
                 "severity": "Medium",
                 "cwe": "CWE-79",
                 "description": "The application reflects untrusted data in a web page without proper validation or escaping, allowing execution of malicious scripts.",
-                "remediation": "Context-aware output encoding (escaping) of all user input before rendering it in the browser."
+                "remediation": "Context-aware output encoding (escaping) of all user input before rendering it in the browser.",
+                "remediation_code": """# Python (Jinja2) - Auto-escapes by default
+{{ user_input }}
+
+# JavaScript (React) - Safe by default
+<div>{userInput}</div>"""
             },
             "sensitive_data": {
                 "name": "Sensitive Data Exposure",
@@ -72,7 +79,10 @@ class VulnerabilityScanner:
                 "severity": "Critical",
                 "cwe": "CWE-89",
                 "description": "The application delays its response when specific SQL commands (SLEEP) are injected, indicating a Blind SQL Injection vulnerability.",
-                "remediation": "Use parameterized queries. Ensure database errors are not suppressing the logic but preventing the injection entirely."
+                "remediation": "Use parameterized queries. Ensure database errors are not suppressing the logic but preventing the injection entirely.",
+                "remediation_code": """# Python (Secure)
+query = "SELECT * FROM products WHERE id = :id"
+db.session.execute(query, {'id': input_id})"""
             },
             "union_sqli": {
                 "name": "SQL Injection (UNION-Based)",
@@ -142,28 +152,40 @@ class VulnerabilityScanner:
                 "severity": "High",
                 "cwe": "CWE-639",
                 "description": "The application allows access to objects belonging to other users by manipulating IDs.",
-                "remediation": "Implement proper authorization checks for every object access."
+                "remediation": "Implement proper authorization checks for every object access.",
+                "remediation_code": """# Python (Secure)
+if document.owner_id != current_user.id:
+    abort(403, "Access Denied")"""
             },
             "bac": {
                 "name": "Broken Access Control (BAC)",
                 "severity": "High",
                 "cwe": "CWE-285",
                 "description": "Unprivileged users can access restricted administrative pages.",
-                "remediation": "Enforce strict role-based access control (RBAC) on all endpoints."
+                "remediation": "Enforce strict role-based access control (RBAC) on all endpoints.",
+                "remediation_code": """# Python (Decorator)
+@requires_role('admin')
+def admin_dashboard():
+    ..."""
             },
             "jwt_none": {
                 "name": "Insecure JWT (Alg: None)",
                 "severity": "Critical",
                 "cwe": "CWE-327",
                 "description": "The application allows JSON Web Tokens with 'alg': 'none', which bypasses signature verification.",
-                "remediation": "Enforce strong algorithms (RS256/HS256) and reject 'none' algorithm."
+                "remediation": "Enforce strong algorithms (RS256/HS256) and reject 'none' algorithm.",
+                "remediation_code": """# Python (PyJWT)
+payload = jwt.decode(token, key, algorithms=["HS256"])
+# Never use verify=False or allow 'none'"""
             },
             "cookie_insecure": {
                 "name": "Insecure Cookie Flags",
                 "severity": "Low",
                 "cwe": "CWE-1275",
                 "description": "Sensitive cookies are missing 'Secure', 'HttpOnly', or 'SameSite' flags.",
-                "remediation": "Set Secure=True, HttpOnly=True, and SameSite=Strict/Lax for all session cookies."
+                "remediation": "Set Secure=True, HttpOnly=True, and SameSite=Strict/Lax for all session cookies.",
+                "remediation_code": """# Python (Flask)
+response.set_cookie('session', value, secure=True, httponly=True, samesite='Lax')"""
             }
         }
         self.scanned_hosts = set()
@@ -177,8 +199,15 @@ class VulnerabilityScanner:
             "parameter": param,
             "payload": payload,
             "evidence": evidence,
+            "type": info.get("name", "Unknown Issue"),
+            "severity": info.get("severity", "Low"),
+            "url": url,
+            "parameter": param,
+            "payload": payload,
+            "evidence": evidence,
             "description": info.get("description", ""),
             "remediation": info.get("remediation", ""),
+            "remediation_code": info.get("remediation_code", ""), # New Field
             "cwe": info.get("cwe", "")
         })
         print(f"[!] {info.get('name')} found at {url}")

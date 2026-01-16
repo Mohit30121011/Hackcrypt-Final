@@ -24,6 +24,15 @@ class PDFReport(FPDF):
         self.multi_cell(0, 5, body)
         self.ln()
 
+    def render_code_block(self, code):
+        self.set_font('Courier', '', 9)
+        self.set_fill_color(245, 245, 245) # Very Light Grey
+        self.set_text_color(40, 40, 40) # Dark code text
+        # border=1 (rect), align='L', fill=True
+        self.multi_cell(0, 5, code, 1, 'L', True)
+        self.set_text_color(0, 0, 0) # Reset
+        self.ln(4)
+
     def generate(self, scan_data, filename="report.pdf"):
         self.add_page()
         
@@ -91,6 +100,12 @@ class PDFReport(FPDF):
             self.cell(0, 6, "Remediation:", 0, 1)
             self.set_font('Arial', '', 10)
             self.multi_cell(0, 5, finding.get('remediation', ''))
+            
+            if finding.get('remediation_code'):
+                self.ln(2)
+                self.set_font('Arial', 'B', 10)
+                self.cell(0, 6, "Fix Snippet:", 0, 1)
+                self.render_code_block(finding.get('remediation_code'))
             
             self.ln(5)
             self.line(10, self.get_y(), 200, self.get_y())
