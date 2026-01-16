@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 import uuid
 import os
+from supabase import create_client, Client
 
 from spider import Spider
 from scanner import VulnerabilityScanner
@@ -18,18 +19,20 @@ from report_generator import PDFReport
 from authenticator import Authenticator
 import aiohttp
 
+# Supabase Config
+SUPABASE_URL = "https://hkjtntapeumanmhpydqb.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhranRudGFwZXVtYW5taHB5ZHFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg1ODg5MzEsImV4cCI6MjA4NDE2NDkzMX0.Ssmante-lCIY90CkYjeg2LLMH0v-6nuse3CV_9cJDhI"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 app = FastAPI(title="Defensive Vulnerability Scanner")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all for hackathon/testing purposes
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# In-memory storage for scan results
-scan_results: Dict[str, Dict] = {}
 
 # --- Models ---
 class ScanRequest(BaseModel):
@@ -38,8 +41,8 @@ class ScanRequest(BaseModel):
     login_url: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
-    auth_mode: str = "auto" # 'auto' (headless) or 'interactive' (headful)
-    stealth_mode: bool = False # Enable WAF evasion (delays + jitter)
+    auth_mode: str = "auto"
+    stealth_mode: bool = False
 
 class Finding(BaseModel):
     type: str
@@ -49,7 +52,7 @@ class Finding(BaseModel):
     cwe: Optional[str] = None
     description: Optional[str] = None
     remediation: Optional[str] = None
-    participant: Optional[str] = None
+    remediation_code: Optional[str] = None
     payload: Optional[str] = None
 
 class ScanResponse(BaseModel):
@@ -62,7 +65,9 @@ class ScanResponse(BaseModel):
 
 # --- Background Task ---
 async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None, username: str = None, password: str = None, auth_mode: str = "auto", stealth_mode: bool = False):
-    # Initialize Session
+    print(f"[*] Starting Scan {scan_id}...")
+    
+    # Init Session
     session = None
     if login_url:
         try:
@@ -72,40 +77,41 @@ async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None
             elif username and password:
                 session = await auth.login(login_url, username, password)
             else:
-                 print("[!] Auto-login requires username & password, but they were missing. Proceeding unauthenticated.")
                  session = aiohttp.ClientSession()
         except Exception as e:
             print(f"[!] Auth Failed: {e}")
-            session = aiohttp.ClientSession() # Fallback to unauthenticated
+            session = aiohttp.ClientSession()
     else:
         session = aiohttp.ClientSession()
 
     try:
-        # Crawling (Spider)
+        # Update Status -> Scanning
+        supabase.table("scans").update({"status": "Scanning"}).eq("id", scan_id).execute()
+
+        # Crawling
         spider = Spider(url, max_pages)
         crawled_urls = await spider.crawl(session_ignored=session)
         
-        # Scanning (VulnerabilityScanner)
-        scanner = VulnerabilityScanner(stealth_mode=stealth_mode)
-        
-        # Update status to Scanning
-        scan_results[scan_id]["status"] = "Scanning"
-        scan_results[scan_id]["crawled_urls"] = crawled_urls
-        
-        # Link findings list immediately for real-time updates
-        scan_results[scan_id]["findings"] = scanner.findings
+        # Update Crawled Count
+        supabase.table("scans").update({"crawled_count": len(crawled_urls)}).eq("id", scan_id).execute()
+
+        # Scanning
+        scanner = VulnerabilityScanner(scan_id=scan_id, supabase_client=supabase, stealth_mode=stealth_mode)
         
         for link in crawled_urls:
             await scanner.scan_url(link, session)
             
-        scan_results[scan_id]["status"] = "Completed"
+        # Update Status -> Completed
+        supabase.table("scans").update({
+            "status": "Completed", 
+            "vulnerability_count": len(scanner.findings)
+        }).eq("id", scan_id).execute()
 
     except Exception as e:
         import traceback
         error_msg = f"{str(e)}\n{traceback.format_exc()}"
         print(f"[!] Scan Error: {error_msg}")
-        scan_results[scan_id]["status"] = "Error"
-        scan_results[scan_id]["error"] = error_msg
+        supabase.table("scans").update({"status": "Error"}).eq("id", scan_id).execute()
 
     finally:
         if session:
@@ -116,51 +122,54 @@ async def run_scan(scan_id: str, url: str, max_pages: int, login_url: str = None
 @app.post("/scan", response_model=ScanResponse)
 async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     print(f"[DEBUG] Received Scan Request: {request}")
-    scan_id = str(uuid.uuid4())
-    scan_results[scan_id] = {
-        "status": "Pending",
-        "target": request.url,
-        "crawled_urls": [],
-        "findings": [],
-        "error": None
-    }
+    
+    # Create Scan Record
+    res = supabase.table("scans").insert({
+        "target_url": request.url,
+        "status": "Pending"
+    }).execute()
+    
+    scan_id = res.data[0]['id']
     
     background_tasks.add_task(run_scan, scan_id, request.url, request.max_pages, request.login_url, request.username, request.password, request.auth_mode, request.stealth_mode)
     
-    return {"scan_id": scan_id, "status": "Pending"}
+    return {"scan_id": scan_id, "status": "Pending", "target": request.url}
 
 @app.get("/scan/{scan_id}")
 async def get_scan_status(scan_id: str):
-    if scan_id not in scan_results:
+    # Fetch Scan Info
+    scan_res = supabase.table("scans").select("*").eq("id", scan_id).execute()
+    if not scan_res.data:
         raise HTTPException(status_code=404, detail="Scan not found")
-    return scan_results[scan_id]
-
-@app.get("/scan/{scan_id}/report")
-async def get_scan_report(scan_id: str):
-    if scan_id not in scan_results:
-        raise HTTPException(status_code=404, detail="Scan not found")
+        
+    scan_data = scan_res.data[0]
     
-    # Check if report exists
-    report_path = f"report_{scan_id}.pdf"
-    if not os.path.exists(report_path):
-         raise HTTPException(status_code=404, detail="Report not generating or failed.")
-         
-    return FileResponse(report_path, media_type="application/pdf", filename=f"security_report_{scan_id}.pdf")
+    # Fetch Findings
+    findings_res = supabase.table("findings").select("*").eq("scan_id", scan_id).execute()
+    
+    return {
+        "scan_id": scan_id,
+        "status": scan_data.get("status"),
+        "target": scan_data.get("target_url"),
+        "crawled_count": scan_data.get("crawled_count", 0),
+        "vulnerability_count": len(findings_res.data),
+        "findings": findings_res.data
+    }
+
+@app.get("/history")
+async def get_history():
+    # Fetch last 50 scans
+    res = supabase.table("scans").select("*").order("created_at", desc=True).limit(50).execute()
+    return res.data
 
 @app.get("/debug/scans")
-async def get_all_scans():
-    return scan_results
-
-    
-    # Generate and serve
-    pdf = PDFReport()
-    pdf.generate(scan_data, filepath)
-    
-    return FileResponse(filepath, media_type='application/pdf', filename=filename)
+async def debug_scans():
+    res = supabase.table("scans").select("*").order("created_at", desc=True).limit(10).execute()
+    return res.data
 
 if __name__ == "__main__":
     import uvicorn
-    # Enforce Proactor for Windows + Playwright
+    # Enforce Proactor for Windows
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)

@@ -7,7 +7,9 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, urljoin
 
 class VulnerabilityScanner:
-    def __init__(self, stealth_mode: bool = False):
+    def __init__(self, scan_id: str = None, supabase_client = None, stealth_mode: bool = False):
+        self.scan_id = scan_id
+        self.supabase = supabase_client
         self.stealth_mode = stealth_mode
         self.findings: List[Dict[str, Any]] = []
         
@@ -282,13 +284,7 @@ class VulnerabilityScanner:
 
     def _add_finding(self, key: str, url: str, evidence: str, param: str = None, payload: str = None):
         info = self.kb.get(key, {})
-        self.findings.append({
-            "type": info.get("name", "Unknown Issue"),
-            "severity": info.get("severity", "Low"),
-            "url": url,
-            "parameter": param,
-            "payload": payload,
-            "evidence": evidence,
+        finding_data = {
             "type": info.get("name", "Unknown Issue"),
             "severity": info.get("severity", "Low"),
             "url": url,
@@ -297,10 +293,22 @@ class VulnerabilityScanner:
             "evidence": evidence,
             "description": info.get("description", ""),
             "remediation": info.get("remediation", ""),
-            "remediation_code": info.get("remediation_code", ""), # New Field
+            "remediation_code": info.get("remediation_code", ""),
             "cwe": info.get("cwe", "")
-        })
+        }
+        
+        # Local list (legacy support)
+        self.findings.append(finding_data)
         print(f"[!] {info.get('name')} found at {url}")
+
+        # Supabase Persist
+        if self.supabase and self.scan_id:
+            try:
+                db_data = finding_data.copy()
+                db_data["scan_id"] = self.scan_id
+                self.supabase.table("findings").insert(db_data).execute()
+            except Exception as e:
+                print(f"[!] DB Insert Error: {e}")
 
     async def scan_url(self, url: str, session: aiohttp.ClientSession):
         print(f"[*] Scanning {url}...")

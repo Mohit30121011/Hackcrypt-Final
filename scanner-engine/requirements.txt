@@ -4,3 +4,4 @@ playwright
 aiohttp
 beautifulsoup4
 pydantic
+supabase

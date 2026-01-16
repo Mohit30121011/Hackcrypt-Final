@@ -65,7 +65,8 @@ export default function LiveActivityPage() {
         if (!currentId) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/scan/${currentId}`);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const res = await fetch(`${apiUrl}/scan/${currentId}`);
             const data: ScanStatus = await res.json();
             setScanStatus(data);
 
@@ -161,7 +162,7 @@ export default function LiveActivityPage() {
     const mediumCount = findings.filter((f) => f.severity.toLowerCase() === "medium").length;
 
     return (
-        <main className="min-h-screen flex items-center justify-center p-4 lg:p-8 relative overflow-hidden bg-black selection:bg-purple-500/30">
+        <main className="h-screen w-full flex items-center justify-center p-4 lg:p-6 relative overflow-hidden bg-black selection:bg-purple-500/30">
             {/* Aurora Background */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
@@ -174,13 +175,13 @@ export default function LiveActivityPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="w-full h-full glass-panel rounded-[32px] md:rounded-[48px] p-3 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
+                className="w-full h-full glass-panel rounded-[24px] md:rounded-[32px] p-2 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
             >
                 {/* Sidebar */}
                 <Sidebar activeItem="Live Activity" />
 
                 {/* Main Content */}
-                <div className="flex-1 rounded-[40px] bg-[#0A0A0A]/50 relative overflow-hidden p-8 lg:p-12 flex flex-col">
+                <div className="flex-1 rounded-[24px] bg-[#0A0A0A]/50 relative overflow-hidden p-6 lg:p-8 flex flex-col min-h-0">
 
                     {/* Header */}
                     <div className="flex items-start justify-between mb-10">
