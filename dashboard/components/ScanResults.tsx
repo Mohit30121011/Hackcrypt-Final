@@ -228,7 +228,7 @@ export function ScanResults({ scanId }: { scanId: string }) {
 interface StatusCardProps {
     label: string;
     value: string | number;
-    icon: React.ElementType;
+    icon: React.ReactNode;
     active?: boolean;
     danger?: boolean;
 }
