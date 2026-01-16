@@ -52,9 +52,26 @@ def run_auth_verification():
     for f in findings:
         if "sensitive_data" in f["type"].lower() or "sensitive_info" in f["type"].lower() or "secret" in f["evidence"].lower():
             if "SECRET_DATA_ACCESS_GRANTED" in f["evidence"] or "/auth/secret" in f["url"]:
-                protected_found = True
                 print(f"[+] SUCCESS: Found protected content at {f['url']}")
                 print(f"    Evidence: {f['evidence']}")
+
+        if "bola" in f['type'].lower() or "idor" in f['type'].lower():
+            if "101" in f['evidence'] or "SSN" in f['evidence']:
+                 print(f"[+] SUCCESS: Found BOLA/IDOR at {f['url']}")
+                 print(f"    Evidence: {f['evidence']}")
+
+        if "bac" in f['type'].lower() or "access control" in f['type'].lower():
+            if "dashboard" in f['url'].lower():
+                 print(f"[+] SUCCESS: Found Broken Access Control at {f['url']}")
+                 print(f"    Evidence: {f['evidence']}")
+
+        if "jwt" in f['type'].lower() or "alg: none" in f['evidence'].lower():
+             print(f"[+] SUCCESS: Found Insecure JWT at {f['url']}")
+             print(f"    Evidence: {f['evidence']}")
+
+        if "cookie" in f['type'].lower():
+             print(f"[+] SUCCESS: Found Insecure Cookie at {f['url']}")
+             print(f"    Evidence: {f['evidence']}")
 
     if protected_found:
         print("\n[SUCCESS] Authentication Logic Verified! The scanner successfully logged in and crawled protected areas.")

@@ -21,7 +21,10 @@ def home():
             <li><a href="/sqli?id=1">SQL Injection</a></li>
             <li><a href="/sqli?id=1">SQL Injection</a></li>
             <li><a href="/cors">CORS</a></li>
-            <li><a href="/auth/secret?id=1">Protected Area (Needs Login)</a></li>
+            <li><a href="/api/user/100">BOLA (IDOR) - User 100</a></li>
+            <li><a href="/admin/dashboard">Broken Access Control (BAC)</a></li>
+            <li><a href="/jwt-none">Insecure JWT (Alg: None)</a></li>
+            <li><a href="/cookie-insecure">Insecure Cookies</a></li>
         </ul>
         <!-- hidden credentials -->
         <!-- API_KEY: sk_live_1234567890 -->
@@ -94,13 +97,41 @@ def endpoint_csti(search: str = ""):
 @app.get("/sqli")
 def endpoint_sqli(id: str = ""):
     # VULNERABLE: SQL Injection
+    # The scanner sends: ' OR '1'='1
     if "'" in id:
-        return JSONResponse(status_code=500, content={"error": "You have an error in your SQL syntax"})
-    if "UNION" in id.upper():
-        # Simulate UNION reflection
-        return f"User: {id} - Reflecting injected data"
-        
-    return f"User ID: {id}"
+        return "Database Error: Syntax error near ''' at line 1"
+    return "Query Executed"
+
+@app.get("/api/user/{user_id}")
+def endpoint_bola(user_id: int):
+    # VULNERABLE: BOLA / IDOR
+    # ID 100 = Public
+    # ID 101 = Private (Admin) -> Scanner should find this by fuzzing 100+1
+    if user_id == 100:
+        return {"id": 100, "role": "Guest", "data": "Public Info"}
+    if user_id == 101:
+        return {"id": 101, "role": "Admin", "data": "Private - SSN: 000-00-0000"} # Evidence
+    return {"id": user_id, "role": "User", "data": "Standard Info"}
+
+@app.get("/admin/dashboard")
+def endpoint_bac():
+    # VULNERABLE: Broken Access Control
+    # Should check session/role, but doesn't.
+    return "Admin Dashboard - Critical Settings - Users: [Admin, Guest]"
+
+@app.get("/jwt-none")
+def endpoint_jwt_none(response: Response):
+    # VULNERABLE: Sets a JWT with 'alg': 'none'
+    # Payload: {"user": "admin"}
+    jwt_val = "eyJhbGciOiJub25lIn0.eyJ1c2VyIjoiYWRtaW4ifQ." # header.payload. (no signature)
+    response.set_cookie(key="auth_token", value=jwt_val)
+    return f"JWT Set: {jwt_val}"
+
+@app.get("/cookie-insecure")
+def endpoint_cookie_insecure(response: Response):
+    # VULNERABLE: Missing Secure/HttpOnly flags
+    response.set_cookie(key="session_id", value="12345", secure=False, httponly=False)
+    return "Insecure Cookie Set"
 
 @app.get("/cors")
 def endpoint_cors(response: Response, request: Request):

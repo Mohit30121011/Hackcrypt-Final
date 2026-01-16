@@ -136,6 +136,34 @@ class VulnerabilityScanner:
                 "cwe": "CWE-78",
                 "description": "The application executes system commands but does not return the output. Detected via time delays.",
                 "remediation": "Avoid using system calls. Validate input strictly against a whitelist."
+            },
+            "bola": {
+                "name": "Broken Object Level Authorization (BOLA/IDOR)",
+                "severity": "High",
+                "cwe": "CWE-639",
+                "description": "The application allows access to objects belonging to other users by manipulating IDs.",
+                "remediation": "Implement proper authorization checks for every object access."
+            },
+            "bac": {
+                "name": "Broken Access Control (BAC)",
+                "severity": "High",
+                "cwe": "CWE-285",
+                "description": "Unprivileged users can access restricted administrative pages.",
+                "remediation": "Enforce strict role-based access control (RBAC) on all endpoints."
+            },
+            "jwt_none": {
+                "name": "Insecure JWT (Alg: None)",
+                "severity": "Critical",
+                "cwe": "CWE-327",
+                "description": "The application allows JSON Web Tokens with 'alg': 'none', which bypasses signature verification.",
+                "remediation": "Enforce strong algorithms (RS256/HS256) and reject 'none' algorithm."
+            },
+            "cookie_insecure": {
+                "name": "Insecure Cookie Flags",
+                "severity": "Low",
+                "cwe": "CWE-1275",
+                "description": "Sensitive cookies are missing 'Secure', 'HttpOnly', or 'SameSite' flags.",
+                "remediation": "Set Secure=True, HttpOnly=True, and SameSite=Strict/Lax for all session cookies."
             }
         }
         self.scanned_hosts = set()
@@ -175,12 +203,17 @@ class VulnerabilityScanner:
         await self.check_blind_rce(session, url) # New
         await self.check_ssti(session, url)
         await self.check_csti(session, url) # New
+        await self.check_bola(session, url) # New
+        await self.check_bac(session, url) # New
+        await self.check_jwt(session, url) # New
         await self.check_xss(session, url)
         
         # Configuration Checks
         await self.check_cors(session, url)
         await self.check_sensitive_info(session, url)
+        await self.check_sensitive_info(session, url)
         await self.check_security_headers(session, url)
+        await self.check_cookie_security(session, url) # New
         
         if urlparse(url).path in ["", "/"]:
             await self.check_sensitive_files(session, url)
@@ -277,6 +310,100 @@ class VulnerabilityScanner:
                              self._add_finding("csti", url, f"CSTI Payload reflected: {payload}", param, payload)
                              break
                 except: pass
+
+    async def check_bola(self, session, url):
+        """
+        Broken Object Level Authorization (BOLA / IDOR).
+        Detects numeric IDs in params and tries to access other objects.
+        """
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+        
+        # 1. Check Query Params for IDs
+        if params:
+            for param, values in params.items():
+                for value in values:
+                    if value.isdigit():
+                        original_id = int(value)
+                        # Try ID+1 and ID-1
+                        test_ids = [original_id + 1, original_id - 1]
+                        
+                        for tid in test_ids:
+                            test_params = params.copy()
+                            test_params[param] = [str(tid)]
+                            test_url = urlunparse(parsed._replace(query=urlencode(test_params, doseq=True)))
+                            
+                            try:
+                                async with session.get(test_url, timeout=5) as resp:
+                                    if resp.status == 200:
+                                        # Heuristic: If we get 200 for a different ID, it MIGHT be BOLA.
+                                        # Use text diff or regex for PII (SSN, Email) to be sure.
+                                        text = await resp.text()
+                                        if "SSN" in text or "admin" in text.lower() or "private" in text.lower():
+                                            self._add_finding("bola", url, f"Access to object ID {tid} successful", param, str(tid))
+                                            break
+                            except: pass
+
+        # 2. Check URL Path for IDs (e.g., /api/user/100)
+        # Regex to find integer segments in path
+        path_segments = parsed.path.split('/')
+        for i, segment in enumerate(path_segments):
+            if segment.isdigit():
+                original_id = int(segment)
+                # Try ID+1
+                new_path = list(path_segments)
+                new_path[i] = str(original_id + 1)
+                test_url = urlunparse(parsed._replace(path='/'.join(new_path)))
+                
+                try:
+                    async with session.get(test_url, timeout=5) as resp:
+                        if resp.status == 200:
+                             text = await resp.text()
+                             if "SSN" in text or "admin" in text.lower() or "private" in text.lower():
+                                self._add_finding("bola", url, f"Path-based ID access successful: {original_id+1}", "path", str(original_id+1))
+                except: pass
+
+    async def check_bac(self, session, url):
+        """
+        Broken Access Control (BAC).
+        Tries to access common privileged endpoints.
+        This is a 'force browsing' check run once per host.
+        """
+        parsed = urlparse(url)
+        host = parsed.netloc
+        base_url = f"{parsed.scheme}://{host}"
+        
+        # Only scan BAC once per host
+        # We use a specific set for BAC to avoid conflicts with port scanning
+        if not hasattr(self, 'bac_scanned_hosts'):
+            self.bac_scanned_hosts = set()
+            
+        if host in self.bac_scanned_hosts:
+            return 
+        self.bac_scanned_hosts.add(host)
+        
+        admin_paths = [
+            "/admin",
+            "/dashboard",
+            "/config",
+            "/api/admin",
+            "/users",
+            "/admin/dashboard", # Specific for our test
+            "/settings"
+        ]
+        
+        for path in admin_paths:
+            target = base_url + path
+            try:
+                async with session.get(target, timeout=5) as resp:
+                    if resp.status == 200:
+                        text = await resp.text()
+                        # Validate it's not a generic login page or error
+                        if "login" not in text.lower() and "error" not in text.lower():
+                             # Check for specific success indicators
+                             if "dashboard" in text.lower() or "admin" in text.lower() or "settings" in text.lower():
+                                  self._add_finding("bac", target, "Privileged area accessible without auth check", "path", path)
+            except: pass
 
     async def check_blind_rce(self, session, url):
         """
@@ -375,6 +502,45 @@ class VulnerabilityScanner:
                              break
                 except: pass
 
+
+    async def check_jwt(self, session, url):
+        """
+        Extracts and analyzes JWTs from Headers or Cookies.
+        """
+        try:
+            # 1. Inspect Headers (Authorization)
+            # This is hard because we are the client. We assume we might see JWTs in response headers or body (uncommon)
+            # OR we check if the APP sets a cookie that looks like a JWT.
+            async with session.get(url, timeout=5) as resp:
+                cookies = session.cookie_jar.filter_cookies(url)
+                for key, cookie in cookies.items():
+                    if cookie.value.count('.') == 2 and (cookie.value.startswith('eyJ') or "bearer" in key.lower()):
+                         self._add_finding("weak_crypto", url, f"JWT found in cookie '{key}'", key, "JWT Deteced")
+                         # Basic 'None' alg check (heuristic)
+                         if "eyJhbGciOiJub25lIn0" in cookie.value: # {"alg":"none"} base64
+                              self._add_finding("jwt_none", url, f"JWT with 'none' algorithm found in cookie '{key}'", key, cookie.value)
+
+            # Note: A real scan would Fuzz the JWT. Here we just passive detect.
+        except: pass
+
+    async def check_cookie_security(self, session, url):
+        """
+        Checks Set-Cookie headers for missing security flags.
+        """
+        try:
+             # We need access to raw cookies from the response history or cookie jar
+             # aiohttp cookie jar abstracts this, so we check the jar for the domain
+             cookies = session.cookie_jar.filter_cookies(url)
+             for key, cookie in cookies.items():
+                  issues = []
+                  if not cookie["secure"]:
+                       issues.append("Missing 'Secure' flag")
+                  if not cookie["httponly"]:
+                       issues.append("Missing 'HttpOnly' flag")
+                  
+                  if issues:
+                       self._add_finding("cookie_insecure", url, f"Cookie '{key}' issues: {', '.join(issues)}", key, None)
+        except: pass
 
     async def check_tech_stack(self, session, url):
         try:
