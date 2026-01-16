@@ -8,18 +8,33 @@ import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, Re
 import { Sidebar } from "@/components/Sidebar";
 
 export default function AnalyticsDashboard() {
-    const [allScans, setAllScans] = useState<StoredScan[]>([]);
+    const [allScans, setAllScans] = useState<any[]>([]);
     const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
-    const [selectedScan, setSelectedScan] = useState<StoredScan | null>(null);
+    const [selectedScan, setSelectedScan] = useState<any | null>(null);
     const [currentTime, setCurrentTime] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setCurrentTime(new Date().toLocaleTimeString());
-        const scans = getAllScans();
-        setAllScans(scans);
-        if (scans.length > 0 && !selectedScanId) {
-            setSelectedScanId(scans[0].id);
-        }
+
+        // Fetch scans from API
+        const fetchScans = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const response = await fetch(`${apiUrl}/history`);
+                const scans = await response.json();
+                setAllScans(scans);
+                if (scans.length > 0 && !selectedScanId) {
+                    setSelectedScanId(scans[0].id);
+                }
+            } catch (error) {
+                console.error("Failed to fetch scan history:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchScans();
 
         const timer = setInterval(() => {
             setCurrentTime(new Date().toLocaleTimeString());
@@ -29,19 +44,38 @@ export default function AnalyticsDashboard() {
     }, []);
 
     useEffect(() => {
-        if (selectedScanId) {
-            setSelectedScan(getScanById(selectedScanId));
-        }
+        const fetchScanDetails = async () => {
+            if (!selectedScanId) return;
+
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const response = await fetch(`${apiUrl}/scan/${selectedScanId}`);
+                const scanData = await response.json();
+                setSelectedScan(scanData);
+            } catch (error) {
+                console.error("Failed to fetch scan details:", error);
+            }
+        };
+
+        fetchScanDetails();
     }, [selectedScanId]);
 
-    const stats = selectedScan ? {
-        total: selectedScan.findings.length,
-        critical: selectedScan.findings.filter(f => f.severity === "Critical").length,
-        high: selectedScan.findings.filter(f => f.severity === "High").length,
-        medium: selectedScan.findings.filter(f => f.severity === "Medium").length,
-        low: selectedScan.findings.filter(f => f.severity === "Low").length,
-        info: selectedScan.findings.filter(f => f.severity === "Info").length,
-    } : { total: 0, critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    interface Finding {
+        severity: string;
+        url: string;
+        type: string;
+        [key: string]: any;
+    }
+
+    const findings: Finding[] = selectedScan?.findings || [];
+    const stats = {
+        total: findings.length,
+        critical: findings.filter((f: Finding) => f.severity === "Critical").length,
+        high: findings.filter((f: Finding) => f.severity === "High").length,
+        medium: findings.filter((f: Finding) => f.severity === "Medium").length,
+        low: findings.filter((f: Finding) => f.severity === "Low").length,
+        info: findings.filter((f: Finding) => f.severity === "Info").length,
+    };
 
     const severityData = [
         { name: "Critical", value: stats.critical, color: "#A855F7" }, // Purple
@@ -51,10 +85,12 @@ export default function AnalyticsDashboard() {
         { name: "Info", value: stats.info, color: "#94A3B8" },     // Slate
     ];
 
-    const urlData = selectedScan ? [
-        { name: "Vulnerable", value: new Set(selectedScan.findings.map(f => f.url)).size, color: "#EF4444" },
-        { name: "Clean", value: Math.max(0, selectedScan.crawledUrls.length - new Set(selectedScan.findings.map(f => f.url)).size), color: "#10B981" },
-    ] : [];
+    const crawledCount = selectedScan?.crawled_count || 0;
+    const vulnerableUrlCount = new Set(findings.map((f: Finding) => f.url)).size;
+    const urlData = [
+        { name: "Vulnerable", value: vulnerableUrlCount, color: "#EF4444" },
+        { name: "Clean", value: Math.max(0, crawledCount - vulnerableUrlCount), color: "#10B981" },
+    ];
 
     return (
         <main className="min-h-screen flex items-center justify-center p-4 lg:p-8 relative overflow-hidden bg-black selection:bg-purple-500/30">
