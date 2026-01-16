@@ -2,6 +2,7 @@
 
 import { Shield, Command, Activity, Lock, Smartphone } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface SidebarProps {
     activeItem: string;
@@ -19,14 +20,16 @@ export function Sidebar({ activeItem }: SidebarProps) {
         <div className="w-[300px] glass-card rounded-[40px] p-8 flex flex-col justify-between hidden lg:flex">
             <div>
                 {/* Logo Section */}
-                <div className="flex items-center gap-4 mb-12">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-b from-white/10 to-white/5 border border-white/10 flex items-center justify-center shadow-lg">
-                        <Shield className="w-6 h-6 text-white/90" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight text-white">Scancrypt</h1>
-                        <p className="text-[10px] font-bold text-white/40 tracking-[0.2em] uppercase mt-1">iOS 26 Beta</p>
-                    </div>
+                {/* Logo Section */}
+                <div className="flex items-center justify-center mb-12">
+                    <Image
+                        src="/logo.png"
+                        alt="Scancrypt Logo"
+                        width={200}
+                        height={60}
+                        className="w-auto h-12 object-contain"
+                        priority
+                    />
                 </div>
 
                 {/* Navigation */}
