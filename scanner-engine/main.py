@@ -2,6 +2,8 @@ import os
 import asyncio
 import aiohttp
 from fastapi import FastAPI, BackgroundTasks
+from fastapi.responses import FileResponse
+from report_generator import PDFReport
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -277,6 +279,35 @@ async def get_history(user_id: Optional[str] = None):
     if user_id:
         scans = [s for s in scans if s.get("user_id") == user_id]
     return scans
+
+@app.get("/report/{scan_id}")
+async def get_report(scan_id: str):
+    """Generate and return PDF report"""
+    # 1. Fetch data
+    scan_data = await get_scan(scan_id)
+    if not scan_data or "error" in scan_data:
+        return {"error": "Scan not found"}
+    
+    # 2. Generate PDF
+    pdf = PDFReport()
+    filename = f"report_{scan_id}.pdf"
+    
+    # Clean old report if exists
+    if os.path.exists(filename):
+        os.remove(filename)
+        
+    pdf.generate(scan_data, filename)
+    
+    # 3. Form readable download name
+    target = scan_data.get('target', scan_data.get('target_url', 'target')).replace('http://', '').replace('https://', '').replace('/', '_')
+    date_str = datetime.now().strftime("%Y%m%d")
+    readable_name = f"Scancrypt_Report_{target}_{date_str}.pdf"
+    
+    return FileResponse(
+        filename, 
+        media_type='application/pdf', 
+        filename=readable_name
+    )
 
 @app.get("/debug/scans")
 async def debug_scans():

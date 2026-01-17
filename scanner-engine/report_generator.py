@@ -69,7 +69,7 @@ class PDFReport(FPDF):
             
             self.set_text_color(*color)
             self.set_font('Arial', 'B', 12)
-            self.cell(0, 8, f"{i}. [{severity}] {finding.get('type')}", 0, 1)
+            self.cell(0, 8, f"{i}. [{severity}] {finding.get('name', finding.get('type', 'Vulnerability'))}", 0, 1)
             self.set_text_color(0, 0, 0)
             
             self.set_font('Arial', 'B', 10)

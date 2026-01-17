@@ -53,16 +53,16 @@ export default function AnalyticsDashboard() {
 
     const handleExport = () => {
         if (!selectedScan) return;
-        const reportData = JSON.stringify(selectedScan, null, 2);
-        const blob = new Blob([reportData], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
+
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        // Trigger download via hidden link
         const a = document.createElement("a");
-        a.href = url;
-        a.download = `scan-report-${selectedScan.id}.json`;
+        a.href = `${apiUrl}/report/${selectedScan.id}`;
+        a.target = "_blank";
+        a.download = "";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     };
 
     useEffect(() => {
