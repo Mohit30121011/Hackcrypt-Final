@@ -19,7 +19,9 @@ export default function AnalyticsDashboard() {
     const [showAllFindings, setShowAllFindings] = useState(false);
 
     const fetchScans = useCallback(async () => {
-        setIsLoading(true);
+        // Only show loading if we have no data initially
+        // setIsLoading(true); // REMOVED to prevent flash
+
         try {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
@@ -33,15 +35,18 @@ export default function AnalyticsDashboard() {
             const response = await fetch(url);
             const scans = await response.json();
             setAllScans(scans);
-            if (scans.length > 0 && !selectedScanId) {
-                setSelectedScanId(scans[0].id);
-            }
+
+            // Set selection only if not set
+            setSelectedScanId(prev => {
+                if (!prev && scans.length > 0) return scans[0].id;
+                return prev;
+            });
         } catch (error) {
             console.error("Failed to fetch scan history:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [selectedScanId]);
+    }, []);
 
     useEffect(() => {
         setCurrentTime(new Date().toLocaleTimeString());
