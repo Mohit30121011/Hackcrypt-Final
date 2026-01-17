@@ -35,16 +35,19 @@ export default function AnalyticsDashboard() {
                 : `${apiUrl}/history`;
 
             const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const scans = await response.json();
-            setAllScans(scans);
+            console.log("Scans fetched:", scans); // DEBUG
+            setAllScans(Array.isArray(scans) ? scans : []);
 
             // Set selection only if not set
             setSelectedScanId(prev => {
-                if (!prev && scans.length > 0) return scans[0].id;
+                if (!prev && Array.isArray(scans) && scans.length > 0) return scans[0].id;
                 return prev;
             });
         } catch (error) {
             console.error("Failed to fetch scan history:", error);
+            setAllScans([]); // Fallback to empty
         } finally {
             setIsLoading(false);
         }
@@ -409,7 +412,7 @@ export default function AnalyticsDashboard() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {allScans
-                                            .filter(scan => (scan.target_url || scan.target || "").toLowerCase().includes(historySearch.toLowerCase()))
+                                            .filter(scan => scan && (scan.target_url || scan.target || "").toLowerCase().includes(historySearch.toLowerCase()))
                                             .map(scan => (
                                                 <div
                                                     key={scan.id}
