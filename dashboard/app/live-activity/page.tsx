@@ -42,6 +42,7 @@ function LiveActivityContent() {
     const [startTime] = useState(Date.now());
     const [elapsedTime, setElapsedTime] = useState(0);
     const [severityFilter, setSeverityFilter] = useState<string>("all");
+    const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
     const [scanIdState, setScanIdState] = useState<string | null>(null);
     const processedRef = useRef<Set<string>>(new Set());
@@ -165,10 +166,33 @@ function LiveActivityContent() {
     const mediumCount = findings.filter((f) => f.severity.toLowerCase() === "medium").length;
     const lowCount = findings.filter((f) => f.severity.toLowerCase() === "low").length;
 
-    // Filtered findings based on severity filter
-    const filteredFindings = severityFilter === "all"
-        ? findings
-        : findings.filter((f) => f.severity.toLowerCase() === severityFilter.toLowerCase());
+    // Category mapping
+    const getCategory = (name: string): string => {
+        const lowName = name.toLowerCase();
+        if (lowName.includes("sql")) return "injection";
+        if (lowName.includes("xss")) return "xss";
+        if (lowName.includes("rce") || lowName.includes("command")) return "rce";
+        if (lowName.includes("lfi") || lowName.includes("file inclusion")) return "lfi";
+        if (lowName.includes("ssti") || lowName.includes("csti") || lowName.includes("template")) return "template";
+        if (lowName.includes("bola") || lowName.includes("idor") || lowName.includes("bac") || lowName.includes("access")) return "access";
+        if (lowName.includes("cors")) return "cors";
+        if (lowName.includes("jwt") || lowName.includes("auth") || lowName.includes("cookie") || lowName.includes("session")) return "auth";
+        if (lowName.includes("header") || lowName.includes("tech") || lowName.includes("disclosure")) return "info";
+        return "other";
+    };
+
+    // Category counts
+    const injectionCount = findings.filter((f) => getCategory(f.name) === "injection").length;
+    const xssCount = findings.filter((f) => getCategory(f.name) === "xss").length;
+    const accessCount = findings.filter((f) => getCategory(f.name) === "access").length;
+    const authCount = findings.filter((f) => getCategory(f.name) === "auth").length;
+
+    // Filtered findings based on severity + category filter
+    const filteredFindings = findings.filter((f) => {
+        const severityMatch = severityFilter === "all" || f.severity.toLowerCase() === severityFilter.toLowerCase();
+        const categoryMatch = categoryFilter === "all" || getCategory(f.name) === categoryFilter;
+        return severityMatch && categoryMatch;
+    });
 
     return (
         <main className="h-screen w-full flex items-center justify-center p-4 lg:p-6 relative overflow-hidden bg-black selection:bg-purple-500/30">
@@ -192,65 +216,58 @@ function LiveActivityContent() {
                 {/* Main Content */}
                 <div className="flex-1 rounded-[12px] md:rounded-[20px] lg:rounded-[24px] bg-[#0A0A0A]/50 relative overflow-hidden p-3 md:p-6 lg:p-8 flex flex-col min-h-0">
 
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-10">
-                        <div>
-                            <div className="flex items-center gap-4 mb-2">
-                                <div className="w-12 h-12 rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                    <Activity className="w-6 h-6 text-emerald-400" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">
-                                        Active Operations
-                                    </h1>
-                                    <div className="flex items-center gap-3 text-sm text-white/40 mt-1">
-                                        <span className="flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></span>
-                                            Scanning Target
-                                        </span>
-                                        <span>•</span>
-                                        <span className="font-mono flex items-center gap-2">
-                                            <Clock className="w-3 h-3" />
-                                            {formatTime(elapsedTime)}
-                                        </span>
-                                    </div>
+                    {/* Header - Mobile Optimized */}
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4 md:mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-emerald-500/20 flex-shrink-0">
+                                <Activity className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl md:text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">
+                                    Live Scan
+                                </h1>
+                                <div className="flex items-center gap-2 text-xs md:text-sm text-white/40 mt-0.5">
+                                    <span className="flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        {isComplete ? "Done" : "Scanning"}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="font-mono">{formatTime(elapsedTime)}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => router.push("/")}
-                                className={`px-5 py-2.5 rounded-2xl text-sm font-medium flex items-center gap-2 transition-all cursor-pointer ${isComplete
-                                    ? "bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-                                    : "bg-white/5 text-white/40 cursor-not-allowed"
-                                    }`}
-                                disabled={!isComplete}
-                            >
-                                <CheckCircle2 className="w-4 h-4" />
-                                {isComplete ? "Complete" : "Scanning..."}
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => router.push("/")}
+                            className={`px-4 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium flex items-center gap-2 transition-all ${isComplete
+                                ? "bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                                : "bg-white/5 text-white/40"
+                                }`}
+                            disabled={!isComplete}
+                        >
+                            <CheckCircle2 className="w-4 h-4" />
+                            {isComplete ? "Complete" : "Scanning..."}
+                        </button>
                     </div>
 
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Stats Row - Compact on Mobile */}
+                    <div className="grid grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
                         <StatCard
                             icon={Target}
-                            label="URLs Crawled"
+                            label="URLs"
                             value={scanStatus?.crawled_urls?.length || 0}
                             color="text-cyan-400"
                             bg="from-cyan-500/20 to-cyan-600/5"
                         />
                         <StatCard
                             icon={Shield}
-                            label="Vulnerabilities"
+                            label="Vulns"
                             value={findings.length}
                             color="text-purple-400"
                             bg="from-purple-500/20 to-purple-600/5"
                         />
                         <StatCard
-                            label="Critical/High"
+                            label="Crit/High"
                             value={`${criticalCount}/${highCount}`}
                             color="text-red-400"
                             bg="from-red-500/20 to-red-600/5"
@@ -265,41 +282,40 @@ function LiveActivityContent() {
                         />
                     </div>
 
-                    {/* Split View for Terminal and Findings */}
-                    <div className="flex-1 grid lg:grid-cols-2 gap-6 min-h-0">
-                        {/* Terminal Column */}
-                        <div className="flex flex-col h-full bg-[#1C1C1E] rounded-[24px] border border-white/5 overflow-hidden shadow-2xl">
-                            {/* MacTerminal handles its own header/content, wrapping it here for layout */}
+                    {/* Split View - Stacked on Mobile, Side-by-side on Desktop */}
+                    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-2 gap-3 md:gap-4 min-h-0 overflow-hidden">
+                        {/* Terminal Column - Smaller height on mobile */}
+                        <div className="flex flex-col h-[200px] md:h-[300px] lg:h-full bg-[#1C1C1E] rounded-xl md:rounded-[24px] border border-white/5 overflow-hidden shadow-2xl">
                             <div className="flex-1 overflow-hidden">
                                 <MacTerminal
                                     logs={logs}
                                     isRunning={!isComplete}
-                                    title={`Scanner Output`}
+                                    title={`Output`}
                                 />
                             </div>
                         </div>
 
                         {/* Live Findings Column */}
-                        <div className="flex flex-col h-full overflow-hidden">
-                            <div className="flex flex-col gap-3 mb-4 px-1">
+                        <div className="flex flex-col flex-1 lg:h-full overflow-hidden">
+                            <div className="flex flex-col gap-2 mb-2 md:mb-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold text-white/90">Live Findings</h3>
-                                    <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-white/40 border border-white/5">{filteredFindings.length} found</span>
+                                    <h3 className="text-sm md:text-lg font-semibold text-white/90">Findings</h3>
+                                    <span className="text-[10px] md:text-xs px-2 py-0.5 md:py-1 rounded-full bg-white/5 text-white/40 border border-white/5">{filteredFindings.length}</span>
                                 </div>
 
                                 {/* Severity Filters */}
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                                     {[
                                         { key: "all", label: "All", color: "bg-white/10 text-white" },
-                                        { key: "critical", label: `Critical (${criticalCount})`, color: "bg-purple-500/20 text-purple-400" },
-                                        { key: "high", label: `High (${highCount})`, color: "bg-red-500/20 text-red-400" },
-                                        { key: "medium", label: `Medium (${mediumCount})`, color: "bg-amber-500/20 text-amber-400" },
-                                        { key: "low", label: `Low (${lowCount})`, color: "bg-blue-500/20 text-blue-400" },
+                                        { key: "critical", label: `⚠️ ${criticalCount}`, color: "bg-purple-500/20 text-purple-400" },
+                                        { key: "high", label: `🔴 ${highCount}`, color: "bg-red-500/20 text-red-400" },
+                                        { key: "medium", label: `🟡 ${mediumCount}`, color: "bg-amber-500/20 text-amber-400" },
+                                        { key: "low", label: `🔵 ${lowCount}`, color: "bg-blue-500/20 text-blue-400" },
                                     ].map((filter) => (
                                         <button
                                             key={filter.key}
                                             onClick={() => setSeverityFilter(filter.key)}
-                                            className={`text-xs px-3 py-1.5 rounded-lg transition-all ${severityFilter === filter.key
+                                            className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${severityFilter === filter.key
                                                 ? `${filter.color} border border-current`
                                                 : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
                                                 }`}
@@ -308,9 +324,36 @@ function LiveActivityContent() {
                                         </button>
                                     ))}
                                 </div>
+
+                                {/* Category Filters */}
+                                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                                    {[
+                                        { key: "all", label: "All Types", icon: "🎯" },
+                                        { key: "injection", label: `SQLi`, icon: "💉", count: injectionCount },
+                                        { key: "xss", label: `XSS`, icon: "⚡", count: xssCount },
+                                        { key: "access", label: `Access`, icon: "🔓", count: accessCount },
+                                        { key: "auth", label: `Auth`, icon: "🔑", count: authCount },
+                                        { key: "info", label: `Info`, icon: "ℹ️" },
+                                    ].map((filter) => (
+                                        <button
+                                            key={filter.key}
+                                            onClick={() => setCategoryFilter(filter.key)}
+                                            className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1 ${categoryFilter === filter.key
+                                                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                                                : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
+                                                }`}
+                                        >
+                                            <span>{filter.icon}</span>
+                                            <span>{filter.label}</span>
+                                            {filter.count !== undefined && filter.count > 0 && (
+                                                <span className="text-[8px] bg-white/10 px-1 rounded">{filter.count}</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto glass-scrollbar pr-2 space-y-3 pb-4">
+                            <div className="flex-1 overflow-y-auto glass-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3 pb-2">
                                 <AnimatePresence mode="popLayout">
                                     {filteredFindings.length === 0 ? (
                                         <motion.div
@@ -369,15 +412,14 @@ function StatCard({
     bg: string;
 }) {
     return (
-        <div className="glass-card rounded-[24px] p-6 relative overflow-hidden group">
+        <div className="glass-card rounded-xl md:rounded-[24px] p-2.5 md:p-4 lg:p-6 relative overflow-hidden group">
             <div className={`absolute inset-0 bg-gradient-to-br ${bg} opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
             <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                    <span className="text-xs font-bold text-white/40 uppercase tracking-widest">{label}</span>
-                    {Icon && <Icon className={`w-5 h-5 ${color}`} />}
+                <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <span className="text-[8px] md:text-[10px] lg:text-xs font-bold text-white/40 uppercase tracking-wider truncate">{label}</span>
+                    {Icon && <Icon className={`w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 ${color} hidden md:block`} />}
                 </div>
-                <p className={`text-4xl lg:text-5xl font-bold ${color} text-glow mb-1 truncate`}>{value}</p>
-                <div className="h-1 w-12 rounded-full bg-white/10 mt-2" />
+                <p className={`text-lg md:text-2xl lg:text-4xl font-bold ${color} truncate`}>{value}</p>
             </div>
         </div>
     );
