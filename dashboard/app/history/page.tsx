@@ -14,6 +14,7 @@ export default function AnalyticsDashboard() {
     const [selectedScan, setSelectedScan] = useState<any | null>(null);
     const [currentTime, setCurrentTime] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    const [showAllFindings, setShowAllFindings] = useState(false);
 
     const fetchScans = useCallback(async () => {
         setIsLoading(true);
@@ -68,6 +69,7 @@ export default function AnalyticsDashboard() {
     useEffect(() => {
         const fetchScanDetails = async () => {
             if (!selectedScanId) return;
+            setShowAllFindings(false);
 
             try {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -326,11 +328,16 @@ export default function AnalyticsDashboard() {
                             >
                                 <div className="flex items-center justify-between mb-4 md:mb-6">
                                     <h3 className="text-lg md:text-xl font-semibold text-white/90">Recent Vulnerabilities</h3>
-                                    <button className="text-xs md:text-sm text-emerald-400 hover:text-emerald-300 transition-colors">View All Analysis</button>
+                                    <button
+                                        onClick={() => setShowAllFindings(!showAllFindings)}
+                                        className="text-xs md:text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                                    >
+                                        {showAllFindings ? "View Less" : "View All Analysis"}
+                                    </button>
                                 </div>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
                                     {selectedScan?.findings && selectedScan.findings.length > 0 ? (
-                                        selectedScan.findings.slice(0, 8).map((finding: Finding, idx: number) => (
+                                        selectedScan.findings.slice(0, showAllFindings ? undefined : 8).map((finding: Finding, idx: number) => (
                                             <div
                                                 key={idx}
                                                 className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group"
