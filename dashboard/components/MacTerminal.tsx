@@ -41,7 +41,7 @@ export function MacTerminal({ logs, isRunning = true, title = "system_init.exe" 
                 className="flex-1 overflow-y-auto p-6 font-mono text-sm space-y-2 glass-scrollbar relative z-10"
                 style={{ fontFamily: "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace" }}
             >
-                {logs.length === 0 && (
+                {(!logs || logs.length === 0) && (
                     <div className="text-cyan-500/30 flex flex-col gap-2 animate-pulse">
                         <div className="flex items-center gap-2">
                             <span className="text-pink-500">›</span>
@@ -53,7 +53,7 @@ export function MacTerminal({ logs, isRunning = true, title = "system_init.exe" 
                     </div>
                 )}
 
-                {logs.map((log, index) => (
+                {(logs || []).map((log, index) => (
                     <motion.div
                         key={index}
                         initial={{ opacity: 0, x: -10 }}
@@ -90,7 +90,7 @@ export function MacTerminal({ logs, isRunning = true, title = "system_init.exe" 
 }
 
 function getLogColor(log: string): string {
-    const lowerLog = log.toLowerCase();
+    const lowerLog = (log || "").toLowerCase();
 
     if (lowerLog.includes("critical") || lowerLog.includes("error") || lowerLog.includes("fail")) {
         return "text-red-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]";

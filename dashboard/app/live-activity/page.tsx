@@ -88,7 +88,7 @@ function LiveActivityContent() {
 
             // Add finding logs
             data.findings?.forEach((finding) => {
-                const logEntry = `[${finding.severity.toUpperCase()}] Found: ${finding.name} at ${finding.url}`;
+                const logEntry = `[${(finding.severity || "INFO").toUpperCase()}] Found: ${finding.name || "Vulnerability"} at ${finding.url}`;
                 if (!seen.has(logEntry)) {
                     seen.add(logEntry);
                     newLogs.push(logEntry);
@@ -263,7 +263,7 @@ function LiveActivityContent() {
                         <StatCard
                             icon={Shield}
                             label="Vulns"
-                            value={findings.length}
+                            value={findings?.length || 0}
                             color="text-purple-400"
                             bg="from-purple-500/20 to-purple-600/5"
                         />
@@ -301,7 +301,7 @@ function LiveActivityContent() {
                             <div className="flex flex-col gap-2 mb-2 md:mb-3">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm md:text-lg font-semibold text-white/90">Findings</h3>
-                                    <span className="text-[10px] md:text-xs px-2 py-0.5 md:py-1 rounded-full bg-white/5 text-white/40 border border-white/5">{filteredFindings.length}</span>
+                                    <span className="text-[10px] md:text-xs px-2 py-0.5 md:py-1 rounded-full bg-white/5 text-white/40 border border-white/5">{filteredFindings?.length || 0}</span>
                                 </div>
 
                                 {/* Severity Filters */}
@@ -356,14 +356,14 @@ function LiveActivityContent() {
 
                             <div className="flex-1 overflow-y-auto glass-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3 pb-2">
                                 <AnimatePresence mode="popLayout">
-                                    {filteredFindings.length === 0 ? (
+                                    {(!filteredFindings || filteredFindings.length === 0) ? (
                                         <motion.div
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             className="h-full flex flex-col items-center justify-center text-white/30 bg-white/5 rounded-[24px] border border-white/5 border-dashed min-h-[200px]"
                                         >
                                             <Shield className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                            <p className="text-sm font-medium opacity-60">{findings.length > 0 ? "No matches for filter" : "Waiting for findings..."}</p>
+                                            <p className="text-sm font-medium opacity-60">{(findings?.length || 0) > 0 ? "No matches for filter" : "Waiting for findings..."}</p>
                                         </motion.div>
                                     ) : (
                                         filteredFindings.map((finding, index) => (
