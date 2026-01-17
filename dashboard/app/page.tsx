@@ -16,10 +16,11 @@ export default function Home() {
 
   // Auth config
   const [showAuthConfig, setShowAuthConfig] = useState(false);
-  const [authMode, setAuthMode] = useState<"auto" | "interactive">("auto");
+  const [authMode, setAuthMode] = useState<"auto" | "interactive" | "cookies">("auto");
   const [loginUrl, setLoginUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [sessionCookies, setSessionCookies] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   // Stealth mode
@@ -40,12 +41,24 @@ export default function Home() {
         user_id: user?.id
       };
 
-      if (showAuthConfig && loginUrl) {
-        payload.login_url = loginUrl;
-        payload.auth_mode = authMode; // "auto" or "interactive"
-        if (authMode === "auto") {
+      if (showAuthConfig) {
+        payload.auth_mode = authMode;
+        if (authMode === "auto" && loginUrl) {
+          payload.login_url = loginUrl;
           payload.username = username;
           payload.password = password;
+        } else if (authMode === "interactive" && loginUrl) {
+          payload.login_url = loginUrl;
+        } else if (authMode === "cookies" && sessionCookies) {
+          // Parse cookies string into array
+          try {
+            payload.session_cookies = sessionCookies.split(';').map(c => {
+              const [name, ...rest] = c.trim().split('=');
+              return { name: name.trim(), value: rest.join('=').trim() };
+            }).filter(c => c.name && c.value);
+          } catch {
+            payload.session_cookies = [];
+          }
         }
       }
 
@@ -236,11 +249,11 @@ export default function Home() {
                     <div className="h-px w-full bg-white/5 mb-4" />
 
                     <div className="flex bg-black/40 rounded-[24px] p-1 mb-4 relative z-0">
-                      {(["auto", "interactive"] as const).map((mode) => (
+                      {(["auto", "interactive", "cookies"] as const).map((mode) => (
                         <button
                           key={mode}
                           onClick={() => setAuthMode(mode)}
-                          className={`flex-1 relative py-3 rounded-[20px] text-sm font-semibold transition-colors z-10 flex items-center justify-center ${authMode === mode ? "text-white" : "text-white/40 hover:text-white"
+                          className={`flex-1 relative py-3 rounded-[20px] text-xs font-semibold transition-colors z-10 flex items-center justify-center ${authMode === mode ? "text-white" : "text-white/40 hover:text-white"
                             }`}
                         >
                           {authMode === mode && (
@@ -251,7 +264,7 @@ export default function Home() {
                             />
                           )}
                           <span className="relative z-10">
-                            {mode === "auto" ? "Auto Login" : "Interactive"}
+                            {mode === "auto" ? "Auto" : mode === "interactive" ? "Interactive" : "🍪 Cookies"}
                           </span>
                         </button>
                       ))}
@@ -288,6 +301,27 @@ export default function Home() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
                             className="w-full bg-white/5 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none relative z-10 transition-colors focus:bg-white/10"
+                          />
+                        </motion.div>
+                      )}
+                      {authMode === "cookies" && (
+                        <motion.div
+                          key="cookies-field"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25, ease: "easeInOut" }}
+                          className="space-y-2 overflow-hidden"
+                        >
+                          <p className="text-[10px] text-white/40 font-medium">
+                            Paste cookies from DevTools (F12 → Application → Cookies)
+                          </p>
+                          <textarea
+                            value={sessionCookies}
+                            onChange={(e) => setSessionCookies(e.target.value)}
+                            placeholder="session_id=abc123; auth_token=xyz789"
+                            rows={3}
+                            className="w-full bg-white/5 border border-white/10 rounded-[16px] px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-xs font-mono outline-none relative z-10 transition-colors focus:bg-white/10 resize-none"
                           />
                         </motion.div>
                       )}

@@ -52,6 +52,7 @@ class ScanRequest(BaseModel):
     auth_mode: str = "none"
     stealth_mode: bool = False
     user_id: Optional[str] = None
+    session_cookies: Optional[List[Dict[str, str]]] = None  # [{name, value}, ...]
 
 class ScanResponse(BaseModel):
     scan_id: str
@@ -82,7 +83,8 @@ def save_finding_to_db(scan_id: str, finding: dict):
 # --- Core Scan Logic ---
 async def run_scan(scan_id: str, target_url: str, max_pages: int, 
                    login_url: str, username: str, password: str, 
-                   auth_mode: str, stealth_mode: bool):
+                   auth_mode: str, stealth_mode: bool,
+                   session_cookies: List[Dict[str, str]] = None):
     """
     Main scan workflow:
     1. Crawl target with Spider
@@ -119,6 +121,11 @@ async def run_scan(scan_id: str, target_url: str, max_pages: int,
             password=password
         )
         crawled_urls, cookies = await spider.crawl()
+        
+        # Use session_cookies if provided (for cookies auth mode)
+        if session_cookies:
+            cookies = session_cookies
+            print(f"[*] Using {len(cookies)} provided session cookies")
         
         # Initialize Session with Cookies
         cookie_jar = {c['name']: c['value'] for c in cookies}
@@ -230,7 +237,8 @@ async def create_scan(request: ScanRequest, background_tasks: BackgroundTasks):
             request.username, 
             request.password, 
             request.auth_mode, 
-            request.stealth_mode
+            request.stealth_mode,
+            request.session_cookies
         )
         
         return {"scan_id": scan_id, "status": "Pending", "target": request.url}
