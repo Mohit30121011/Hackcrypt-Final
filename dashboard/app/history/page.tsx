@@ -148,7 +148,7 @@ export default function AnalyticsDashboard() {
                 className="w-full h-full glass-panel rounded-[16px] md:rounded-[24px] lg:rounded-[32px] p-1.5 md:p-2 flex gap-2 md:gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
             >
                 {/* Sidebar */}
-                <Sidebar activeItem="History" />
+                <Sidebar activeItem="Dashboard" />
 
 
 

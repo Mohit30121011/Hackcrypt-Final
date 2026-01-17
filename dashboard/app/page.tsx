@@ -136,7 +136,7 @@ export default function Home() {
         className="w-full h-full glass-panel rounded-[24px] md:rounded-[32px] lg:rounded-[48px] p-2 md:p-3 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
       >
         {/* Sidebar */}
-        <Sidebar activeItem="Dashboard" />
+        <Sidebar activeItem="Scanner" />
 
         {/* Main Content */}
         <div className="flex-1 rounded-[20px] md:rounded-[32px] lg:rounded-[40px] bg-[#0A0A0A]/50 relative overflow-y-auto glass-scrollbar p-4 md:p-8 lg:p-12 pt-8 md:pt-16 lg:pt-20 flex flex-col items-center justify-start">

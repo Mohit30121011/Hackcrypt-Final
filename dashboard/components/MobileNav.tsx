@@ -31,9 +31,9 @@ export function MobileNav() {
     };
 
     const navItems = [
-        { name: "Dashboard", icon: Command, href: "/" },
+        { name: "Scanner", icon: Command, href: "/" },
         { name: "Live Activity", icon: Activity, href: "/live-activity" },
-        { name: "History", icon: History, href: "/history" },
+        { name: "Dashboard", icon: History, href: "/history" },
         { name: "Secure Enclave", icon: Lock, href: "/enclave" },
         { name: "About Us", icon: Info, href: "/about" },
     ];

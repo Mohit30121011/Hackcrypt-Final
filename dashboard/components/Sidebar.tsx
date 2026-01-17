@@ -17,9 +17,9 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
 
     // Derive active item from pathname (ignore prop if not provided)
     const activeItem = propActiveItem || (
-        pathname === "/" ? "Dashboard" :
+        pathname === "/" ? "Scanner" :
             pathname.includes("/live-activity") ? "Live Activity" :
-                pathname.includes("/history") ? "History" :
+                pathname.includes("/history") ? "Dashboard" :
                     pathname.includes("/enclave") ? "Secure Enclave" :
                         pathname.includes("/about") ? "About Us" : ""
     );
@@ -42,9 +42,9 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
     };
 
     const navItems = [
-        { name: "Dashboard", icon: Command, href: "/", gradient: "from-blue-500/20 to-cyan-500/20" },
-        { name: "Live Activity", icon: Activity, href: "/live-activity", gradient: "from-purple-500/20 to-blue-500/20" },
-        { name: "History", icon: Activity, href: "/history", gradient: "from-purple-500/20 to-blue-500/20" },
+        { name: "Scanner", icon: Command, href: "/", gradient: "from-blue-500/20 to-cyan-500/20" },
+        { name: "Live Activity", icon: Activity, href: "/live-activity" },
+        { name: "Dashboard", icon: Activity, href: "/history", gradient: "from-purple-500/20 to-blue-500/20" },
         { name: "Secure Enclave", icon: Lock, href: "/enclave", gradient: "from-purple-500/20 to-blue-500/20" },
         { name: "About Us", icon: Info, href: "/about", gradient: "from-purple-500/20 to-blue-500/20" },
     ];
