@@ -247,7 +247,7 @@ export default function AnalyticsDashboard() {
                                 </ResponsiveContainer>
                                 {/* Center Text */}
                                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <span className="text-3xl font-bold text-white">{selectedScan ? selectedScan.crawledUrls.length : 0}</span>
+                                    <span className="text-3xl font-bold text-white">{selectedScan?.crawled_urls?.length || selectedScan?.crawled_count || 0}</span>
                                     <span className="text-xs text-white/40 uppercase tracking-widest">URLs</span>
                                 </div>
                             </div>
@@ -277,32 +277,33 @@ export default function AnalyticsDashboard() {
                             <button className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">View All Analysis</button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            {selectedScan?.findings.slice(0, 8).map((finding: Finding, idx: number) => (
-                                <div
-                                    key={idx}
-                                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group"
-                                >
+                            {selectedScan?.findings && selectedScan.findings.length > 0 ? (
+                                selectedScan.findings.slice(0, 8).map((finding: Finding, idx: number) => (
                                     <div
-                                        className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] flex-shrink-0"
-                                        style={{
-                                            color:
-                                                finding.severity === "Critical" ? "#A855F7" :
-                                                    finding.severity === "High" ? "#EF4444" :
-                                                        finding.severity === "Medium" ? "#F59E0B" :
-                                                            finding.severity === "Low" ? "#3B82F6" : "#6B7280",
-                                            backgroundColor: "currentColor"
-                                        }}
-                                    ></div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white/90 group-hover:text-white truncate transition-colors">{finding.name}</p>
-                                        <p className="text-xs text-white/40 truncate">{finding.url}</p>
+                                        key={idx}
+                                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group"
+                                    >
+                                        <div
+                                            className="w-2 h-2 rounded-full shadow-[0_0_10px_currentColor] flex-shrink-0"
+                                            style={{
+                                                color:
+                                                    finding.severity === "Critical" ? "#A855F7" :
+                                                        finding.severity === "High" ? "#EF4444" :
+                                                            finding.severity === "Medium" ? "#F59E0B" :
+                                                                finding.severity === "Low" ? "#3B82F6" : "#6B7280",
+                                                backgroundColor: "currentColor"
+                                            }}
+                                        ></div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-white/90 group-hover:text-white truncate transition-colors">{finding.name}</p>
+                                            <p className="text-xs text-white/40 truncate">{finding.url}</p>
+                                        </div>
+                                        <div className="px-2.5 py-1 rounded-lg bg-white/5 text-xs font-mono text-white/60 border border-white/5">
+                                            #Id-{idx + 1}
+                                        </div>
                                     </div>
-                                    <div className="px-2.5 py-1 rounded-lg bg-white/5 text-xs font-mono text-white/60 border border-white/5">
-                                        #Id-{idx + 1}
-                                    </div>
-                                </div>
-                            ))}
-                            {(!selectedScan || selectedScan.findings.length === 0) && (
+                                ))
+                            ) : (
                                 <div className="col-span-2 py-12 text-center text-white/30 italic">
                                     No active threats detected in current view.
                                 </div>

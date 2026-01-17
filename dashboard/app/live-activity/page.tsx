@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Activity, Clock, Target, CheckCircle2 } from "lucide-react";
+import { Shield, Activity, Clock, Target, CheckCircle2, Database, Zap, Lock, Key, Info, Layers } from "lucide-react";
 import { MacTerminal } from "@/components/MacTerminal";
 import { LiveFindingCard } from "@/components/LiveFindingCard";
 import { Sidebar } from "@/components/Sidebar";
@@ -329,22 +329,22 @@ function LiveActivityContent() {
                                 {/* Category Filters */}
                                 <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                                     {[
-                                        { key: "all", label: "All Types", icon: "🎯" },
-                                        { key: "injection", label: `SQLi`, icon: "💉", count: injectionCount },
-                                        { key: "xss", label: `XSS`, icon: "⚡", count: xssCount },
-                                        { key: "access", label: `Access`, icon: "🔓", count: accessCount },
-                                        { key: "auth", label: `Auth`, icon: "🔑", count: authCount },
-                                        { key: "info", label: `Info`, icon: "ℹ️" },
+                                        { key: "all", label: "All Types", icon: Layers },
+                                        { key: "injection", label: `SQLi`, icon: Database, count: injectionCount },
+                                        { key: "xss", label: `XSS`, icon: Zap, count: xssCount },
+                                        { key: "access", label: `Access`, icon: Lock, count: accessCount },
+                                        { key: "auth", label: `Auth`, icon: Key, count: authCount },
+                                        { key: "info", label: `Info`, icon: Info },
                                     ].map((filter) => (
                                         <button
                                             key={filter.key}
                                             onClick={() => setCategoryFilter(filter.key)}
-                                            className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1 ${categoryFilter === filter.key
+                                            className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${categoryFilter === filter.key
                                                 ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                                                 : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
                                                 }`}
                                         >
-                                            <span>{filter.icon}</span>
+                                            <filter.icon className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                             <span>{filter.label}</span>
                                             {filter.count !== undefined && filter.count > 0 && (
                                                 <span className="text-[8px] bg-white/10 px-1 rounded">{filter.count}</span>
