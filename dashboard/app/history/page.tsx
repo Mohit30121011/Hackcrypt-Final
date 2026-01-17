@@ -146,6 +146,47 @@ export default function AnalyticsDashboard() {
                 {/* Sidebar */}
                 <Sidebar activeItem="History" />
 
+                {/* Past Scans List */}
+                <div className="hidden lg:flex flex-col w-[280px] rounded-[12px] md:rounded-[20px] lg:rounded-[24px] bg-[#0A0A0A]/50 border border-white/5 overflow-hidden backdrop-blur-md">
+                    <div className="p-4 border-b border-white/5 bg-white/5 backdrop-blur-xl">
+                        <h3 className="font-semibold text-white/90 text-sm md:text-base">Past Scans</h3>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2 glass-scrollbar">
+                        {allScans.map(scan => (
+                            <div
+                                key={scan.id}
+                                onClick={() => setSelectedScanId(scan.id)}
+                                className={`p-3 rounded-xl cursor-pointer transition-all border group relative overflow-hidden ${selectedScanId === scan.id ? 'bg-white/10 border-white/20 shadow-lg' : 'hover:bg-white/5 border-transparent'}`}
+                            >
+                                <div className="relative z-10">
+                                    <p className={`text-xs md:text-sm font-medium truncate mb-1 ${selectedScanId === scan.id ? 'text-white' : 'text-white/70 group-hover:text-white'}`} title={scan.target_url}>
+                                        {scan.target_url || scan.target || "Unknown Target"}
+                                    </p>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] text-white/40 font-mono">{new Date(scan.timestamp).toLocaleDateString()}</span>
+                                        {scan.risk_score && (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${scan.risk_score > 7 ? 'text-red-400 border-red-500/20 bg-red-500/10' :
+                                                    scan.risk_score > 4 ? 'text-amber-400 border-amber-500/20 bg-amber-500/10' :
+                                                        'text-blue-400 border-blue-500/20 bg-blue-500/10'
+                                                }`}>
+                                                {scan.risk_score}/10
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                {selectedScanId === scan.id && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-100 transition-opacity" />
+                                )}
+                            </div>
+                        ))}
+                        {allScans.length === 0 && (
+                            <div className="text-center py-8 text-white/30 text-xs">
+                                No scans yet.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Main Content */}
                 {isLoading ? <HistorySkeleton /> : (
                     <div className="flex-1 rounded-[12px] md:rounded-[20px] lg:rounded-[24px] bg-[#0A0A0A]/50 relative overflow-y-auto glass-scrollbar p-3 md:p-6 lg:p-8 flex flex-col min-h-0">
