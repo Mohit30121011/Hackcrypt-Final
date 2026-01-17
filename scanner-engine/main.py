@@ -299,31 +299,54 @@ async def get_history(user_id: Optional[str] = None):
 @app.get("/report/{scan_id}")
 async def get_report(scan_id: str):
     """Generate and return PDF report"""
-    # 1. Fetch data
-    scan_data = await get_scan(scan_id)
-    if not scan_data or "error" in scan_data:
-        return {"error": "Scan not found"}
-    
-    # 2. Generate PDF
-    pdf = PDFReport()
-    filename = f"report_{scan_id}.pdf"
-    
-    # Clean old report if exists
-    if os.path.exists(filename):
-        os.remove(filename)
+    try:
+        # 1. Fetch data
+        scan_data = await get_scan(scan_id)
+        if not scan_data or "error" in scan_data:
+            return {"error": "Scan not found"}
         
-    pdf.generate(scan_data, filename)
-    
-    # 3. Form readable download name
-    target = scan_data.get('target', scan_data.get('target_url', 'target')).replace('http://', '').replace('https://', '').replace('/', '_')
-    date_str = datetime.now().strftime("%Y%m%d")
-    readable_name = f"Scancrypt_Report_{target}_{date_str}.pdf"
-    
-    return FileResponse(
-        filename, 
-        media_type='application/pdf', 
-        filename=readable_name
-    )
+        # 2. Generate PDF
+        pdf = PDFReport()
+        filename = f"report_{scan_id}.pdf"
+        
+        # Clean old report if exists
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+        except:
+            pass
+            
+        try:
+            pdf.generate(scan_data, filename)
+        except Exception as e:
+            # Fallback PDF on error
+            print(f"[ERROR] PDF Generation Failed: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            err_pdf = PDFReport()
+            err_pdf.add_page()
+            err_pdf.set_font('Arial', 'B', 16)
+            err_pdf.cell(0, 10, "Report Generation Failed", 0, 1)
+            err_pdf.set_font('Arial', '', 12)
+            err_pdf.multi_cell(0, 10, f"An error occurred while generating the report:\n{str(e)}\n\nPlease checks server logs.")
+            err_pdf.output(filename, 'F')
+        
+        # 3. Form readable download name
+        # Safe target name
+        target_raw = scan_data.get('target', scan_data.get('target_url', 'target') or 'target')
+        target = str(target_raw).replace('http://', '').replace('https://', '').replace('/', '_').replace(':', '')
+        date_str = datetime.now().strftime("%Y%m%d")
+        readable_name = f"Scancrypt_Report_{target}_{date_str}.pdf"
+        
+        return FileResponse(
+            filename, 
+            media_type='application/pdf', 
+            filename=readable_name
+        )
+    except Exception as e:
+        print(f"[FATAL] Report endpoint failed: {e}")
+        return {"error": str(e)}
 
 @app.get("/debug/scans")
 async def debug_scans():
