@@ -258,27 +258,27 @@ function LiveActivityContent() {
                             label="URLs"
                             value={scanStatus?.crawled_urls?.length || 0}
                             color="text-cyan-400"
-                            bg="from-cyan-500/20 to-cyan-600/5"
+                            glow="bg-cyan-500"
                         />
                         <StatCard
                             icon={Shield}
-                            label="Vulns"
+                            label="Total Vulns"
                             value={findings?.length || 0}
                             color="text-purple-400"
-                            bg="from-purple-500/20 to-purple-600/5"
+                            glow="bg-purple-500"
                         />
                         <StatCard
                             label="Crit/High"
                             value={`${criticalCount}/${highCount}`}
                             color="text-red-400"
-                            bg="from-red-500/20 to-red-600/5"
+                            glow="bg-red-500"
                             icon={Activity}
                         />
                         <StatCard
-                            label="Medium"
-                            value={mediumCount}
+                            label="Medium/Low"
+                            value={`${mediumCount}/${lowCount}`}
                             color="text-amber-400"
-                            bg="from-amber-500/20 to-amber-600/5"
+                            glow="bg-amber-500"
                             icon={Activity}
                         />
                     </div>
@@ -404,23 +404,27 @@ function StatCard({
     label,
     value,
     color,
-    bg
+    glow
 }: {
     icon?: any;
     label: string;
     value: number | string;
     color: string;
-    bg: string;
+    glow: string;
 }) {
     return (
-        <div className="glass-card rounded-xl md:rounded-[24px] p-2.5 md:p-4 lg:p-6 relative overflow-hidden group">
-            <div className={`absolute inset-0 bg-gradient-to-br ${bg} opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-1 md:mb-2">
-                    <span className="text-[8px] md:text-[10px] lg:text-xs font-bold text-white/40 uppercase tracking-wider truncate">{label}</span>
-                    {Icon && <Icon className={`w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 ${color} hidden md:block`} />}
+        <div className="relative overflow-hidden rounded-xl md:rounded-[20px] bg-[#0D1117]/80 backdrop-blur-xl border border-white/5 p-3 md:p-4 group hover:border-white/10 transition-colors h-full min-h-[80px] md:min-h-[100px] flex flex-col justify-between">
+            {/* Ambient Glow */}
+            <div className={`absolute -left-3 -top-3 md:-left-4 md:-top-4 w-16 h-16 md:w-24 md:h-24 ${glow}/10 rounded-full blur-[30px] md:blur-[40px] group-hover:${glow}/20 transition-all duration-500`} />
+
+            <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex items-start justify-between mb-1">
+                    <span className="text-[10px] md:text-xs font-semibold tracking-widest text-white/40 uppercase truncate max-w-[80%]">{label}</span>
+                    {Icon && <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${color} opacity-80`} />}
                 </div>
-                <p className={`text-lg md:text-2xl lg:text-4xl font-bold ${color} truncate`}>{value}</p>
+                <div>
+                    <p className={`text-xl md:text-2xl lg:text-3xl font-bold font-mono ${color} drop-shadow-[0_0_10px_currentColor] truncate`}>{value}</p>
+                </div>
             </div>
         </div>
     );

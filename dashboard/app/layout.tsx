@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import BootAnimation from "@/components/BootAnimation";
 import CustomCursor from "@/components/CustomCursor";
 import { MobileNav } from "@/components/MobileNav";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: '--font-sans' });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-mono' });
 
 export const metadata: Metadata = {
   title: "Scancrypt - Vulnerability Scanner",
@@ -19,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} aurora-bg selection:bg-white/20`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans aurora-bg selection:bg-white/20`}>
         <BootAnimation />
         <CustomCursor />
         <MobileNav />

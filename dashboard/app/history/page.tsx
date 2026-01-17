@@ -168,26 +168,33 @@ export default function AnalyticsDashboard() {
                             {/* Metric Cards Grid */}
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8 shrink-0">
                                 {[
-                                    { label: "Critical", value: stats.critical, color: "text-purple-400", icon: AlertTriangle, bg: "from-purple-500/20 to-purple-600/5" },
-                                    { label: "High Risk", value: stats.high, color: "text-red-400", icon: Shield, bg: "from-red-500/20 to-red-600/5" },
-                                    { label: "Medium", value: stats.medium, color: "text-amber-400", icon: Activity, bg: "from-amber-500/20 to-amber-600/5" },
-                                    { label: "Low Risk", value: stats.low, color: "text-blue-400", icon: CheckCircle, bg: "from-blue-500/20 to-blue-600/5" },
+                                    { label: "Critical", value: stats.critical, color: "text-purple-400", glow: "bg-purple-500", icon: AlertTriangle },
+                                    { label: "High Risk", value: stats.high, color: "text-red-400", glow: "bg-red-500", icon: Shield },
+                                    { label: "Medium", value: stats.medium, color: "text-amber-400", glow: "bg-amber-500", icon: Activity },
+                                    { label: "Low Risk", value: stats.low, color: "text-blue-400", glow: "bg-blue-500", icon: CheckCircle },
                                 ].map((card, idx) => (
                                     <motion.div
                                         key={idx}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: idx * 0.1 }}
-                                        className={`glass-card rounded-xl md:rounded-[24px] p-4 md:p-6 relative overflow-hidden group`}
+                                        className="relative overflow-hidden rounded-xl md:rounded-[24px] bg-[#0D1117]/80 backdrop-blur-xl border border-white/5 p-4 md:p-6 group hover:border-white/10 transition-colors"
                                     >
-                                        <div className={`absolute inset-0 bg-gradient-to-br ${card.bg} opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
-                                        <div className="relative z-10">
+                                        {/* Ambient Glow */}
+                                        <div className={`absolute -left-4 -top-4 md:-left-6 md:-top-6 w-24 h-24 md:w-32 md:h-32 ${card.glow}/10 rounded-full blur-[40px] md:blur-[60px] group-hover:${card.glow}/20 transition-all duration-500`} />
+
+                                        <div className="relative z-10 flex flex-col h-full justify-between">
                                             <div className="flex items-start justify-between mb-2 md:mb-4">
-                                                <span className="text-[10px] md:text-sm font-medium text-white/50 uppercase tracking-widest">{card.label}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${card.glow} shadow-[0_0_8px_currentColor]`} />
+                                                    <span className="text-[10px] md:text-xs font-semibold tracking-widest text-white/40 uppercase">{card.label}</span>
+                                                </div>
                                                 <card.icon className={`w-4 h-4 md:w-5 md:h-5 ${card.color}`} />
                                             </div>
-                                            <p className={`text-2xl md:text-5xl font-bold ${card.color} text-glow mb-1`}>{card.value}</p>
-                                            <p className="text-[10px] md:text-xs text-white/30 font-medium">Active Findings</p>
+                                            <div>
+                                                <p className={`text-3xl md:text-5xl font-bold font-mono ${card.color} drop-shadow-[0_0_15px_currentColor] mb-1`}>{card.value}</p>
+                                                <p className="text-[10px] md:text-xs text-white/30 font-medium tracking-wide">Active Findings</p>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 ))}
