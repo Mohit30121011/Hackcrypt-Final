@@ -196,7 +196,7 @@ function LiveActivityContent() {
     });
 
     return (
-        <main className="h-screen w-full flex items-center justify-center p-4 lg:p-6 relative overflow-hidden bg-black selection:bg-purple-500/30">
+        <div className="h-full w-full flex flex-col p-4 lg:p-6 pb-24 md:pb-6 relative overflow-hidden bg-black selection:bg-purple-500/30">
             {/* Aurora Background */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
@@ -380,7 +380,7 @@ function LiveActivityContent() {
                     </div>
                 </div>
             </motion.div>
-        </main>
+        </div>
     );
 }
 

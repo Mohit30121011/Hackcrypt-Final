@@ -25,7 +25,7 @@ export default function RootLayout({
         <CustomCursor />
         <MobileNav />
         <div className="fixed inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none mix-blend-overlay z-[5]"></div>
-        <main className="pt-16 lg:pt-0">
+        <main className="h-dvh flex flex-col pt-16 lg:pt-0 relative z-0">
           {children}
         </main>
       </body>
