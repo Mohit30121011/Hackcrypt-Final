@@ -11,7 +11,7 @@ export function GlitchHeading({ text, className = "" }: GlitchHeadingProps) {
     return (
         <div className={`relative inline-block ${className}`}>
             {/* Main Text */}
-            <h2 className="relative z-20 font-bold text-white drop-shadow-2xl">
+            <h2 className="relative z-20 font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-300 to-purple-500 drop-shadow-2xl">
                 {text}
             </h2>
 

@@ -2,6 +2,7 @@
 
 import { Lock } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
+import { GlitchHeading } from "@/components/GlitchHeading";
 
 export default function EnclavePage() {
     return (
@@ -19,7 +20,7 @@ export default function EnclavePage() {
                     <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
                         <Lock className="w-10 h-10 text-white/50" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Secure Enclave</h1>
+                    <GlitchHeading text="Secure Enclave" className="text-3xl lg:text-4xl mb-2" />
                     <p className="text-white/40 max-w-md">
                         This module requires biometric authentication and hardware-level security keys.
                         <br />
