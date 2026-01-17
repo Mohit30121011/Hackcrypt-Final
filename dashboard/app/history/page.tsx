@@ -247,7 +247,7 @@ export default function AnalyticsDashboard() {
                                         className="lg:col-span-2 glass-panel rounded-2xl md:rounded-[32px] p-4 md:p-8"
                                     >
                                         <div className="flex items-center justify-between mb-4 md:mb-8">
-                                            <h3 className="text-lg md:text-xl font-light tracking-wide text-white/90">Severity Distribution</h3>
+                                            <h3 className="text-lg md:text-xl font-bold tracking-wide text-white/90">Severity Distribution</h3>
                                             <button className="glass-button p-1.5 md:p-2 rounded-xl">
                                                 <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-white/60" />
                                             </button>
@@ -286,7 +286,7 @@ export default function AnalyticsDashboard() {
                                         transition={{ delay: 0.1 }}
                                         className="glass-panel rounded-2xl md:rounded-[32px] p-4 md:p-8"
                                     >
-                                        <h3 className="text-lg md:text-xl font-light tracking-wide text-white/90 mb-4 md:mb-8">Target Health</h3>
+                                        <h3 className="text-lg md:text-xl font-bold tracking-wide text-white/90 mb-4 md:mb-8">Target Health</h3>
                                         <div className="h-[180px] md:h-[200px] relative w-full min-w-0">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
