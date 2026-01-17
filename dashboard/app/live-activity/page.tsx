@@ -41,6 +41,7 @@ function LiveActivityContent() {
     const [isComplete, setIsComplete] = useState(false);
     const [startTime] = useState(Date.now());
     const [elapsedTime, setElapsedTime] = useState(0);
+    const [severityFilter, setSeverityFilter] = useState<string>("all");
 
     const [scanIdState, setScanIdState] = useState<string | null>(null);
     const processedRef = useRef<Set<string>>(new Set());
@@ -162,6 +163,12 @@ function LiveActivityContent() {
     const criticalCount = findings.filter((f) => f.severity.toLowerCase() === "critical").length;
     const highCount = findings.filter((f) => f.severity.toLowerCase() === "high").length;
     const mediumCount = findings.filter((f) => f.severity.toLowerCase() === "medium").length;
+    const lowCount = findings.filter((f) => f.severity.toLowerCase() === "low").length;
+
+    // Filtered findings based on severity filter
+    const filteredFindings = severityFilter === "all"
+        ? findings
+        : findings.filter((f) => f.severity.toLowerCase() === severityFilter.toLowerCase());
 
     return (
         <main className="h-screen w-full flex items-center justify-center p-4 lg:p-6 relative overflow-hidden bg-black selection:bg-purple-500/30">
@@ -274,24 +281,48 @@ function LiveActivityContent() {
 
                         {/* Live Findings Column */}
                         <div className="flex flex-col h-full overflow-hidden">
-                            <div className="flex items-center justify-between mb-4 px-1">
-                                <h3 className="text-lg font-semibold text-white/90">Live Findings</h3>
-                                <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-white/40 border border-white/5">{findings.length} found</span>
+                            <div className="flex flex-col gap-3 mb-4 px-1">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-white/90">Live Findings</h3>
+                                    <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-white/40 border border-white/5">{filteredFindings.length} found</span>
+                                </div>
+
+                                {/* Severity Filters */}
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { key: "all", label: "All", color: "bg-white/10 text-white" },
+                                        { key: "critical", label: `Critical (${criticalCount})`, color: "bg-purple-500/20 text-purple-400" },
+                                        { key: "high", label: `High (${highCount})`, color: "bg-red-500/20 text-red-400" },
+                                        { key: "medium", label: `Medium (${mediumCount})`, color: "bg-amber-500/20 text-amber-400" },
+                                        { key: "low", label: `Low (${lowCount})`, color: "bg-blue-500/20 text-blue-400" },
+                                    ].map((filter) => (
+                                        <button
+                                            key={filter.key}
+                                            onClick={() => setSeverityFilter(filter.key)}
+                                            className={`text-xs px-3 py-1.5 rounded-lg transition-all ${severityFilter === filter.key
+                                                ? `${filter.color} border border-current`
+                                                : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
+                                                }`}
+                                        >
+                                            {filter.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto glass-scrollbar pr-2 space-y-3 pb-4">
                                 <AnimatePresence mode="popLayout">
-                                    {findings.length === 0 ? (
+                                    {filteredFindings.length === 0 ? (
                                         <motion.div
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             className="h-full flex flex-col items-center justify-center text-white/30 bg-white/5 rounded-[24px] border border-white/5 border-dashed min-h-[200px]"
                                         >
                                             <Shield className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                            <p className="text-sm font-medium opacity-60">Waiting for findings...</p>
+                                            <p className="text-sm font-medium opacity-60">{findings.length > 0 ? "No matches for filter" : "Waiting for findings..."}</p>
                                         </motion.div>
                                     ) : (
-                                        findings.map((finding, index) => (
+                                        filteredFindings.map((finding, index) => (
                                             <LiveFindingCard
                                                 key={`${finding.name}-${finding.url}-${index}`}
                                                 finding={finding}

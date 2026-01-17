@@ -1,13 +1,12 @@
 import os
 import asyncio
-import sys
+import aiohttp
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from supabase import create_client, Client
-import aiohttp
 
 # Import Engine Modules
 from spider import Spider
@@ -17,14 +16,19 @@ from scanner import VulnerabilityScanner
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("[!] Warning: Supabase Credentials missing. DB operations will fail.")
+supabase: Client = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print("[✓] Supabase Connected")
+else:
+    print("[!] Warning: Supabase Credentials missing. Using in-memory storage.")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+# In-memory fallback storage
+scan_results: Dict[str, Any] = {}
 
-app = FastAPI()
+app = FastAPI(title="Scancrypt API", version="2.0")
 
-# CORS
+# CORS - Allow all origins for now
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,76 +52,158 @@ class ScanResponse(BaseModel):
     status: str
     target: str
 
-# --- Core Logic ---
+# --- Helper Functions ---
+def save_finding_to_db(scan_id: str, finding: dict):
+    """Save individual finding to Supabase"""
+    if not supabase:
+        return
+    try:
+        supabase.table("vulnerabilities").insert({
+            "scan_id": scan_id,
+            "name": finding.get("name"),
+            "severity": finding.get("severity"),
+            "url": finding.get("url"),
+            "evidence": finding.get("evidence"),
+            "param": finding.get("param"),
+            "payload": finding.get("payload"),
+            "cwe": finding.get("cwe"),
+            "description": finding.get("description"),
+            "remediation": finding.get("remediation"),
+        }).execute()
+    except Exception as e:
+        print(f"[!] Failed to save finding: {e}")
 
-async def run_scan(scan_id: str, target_url: str, max_pages: int, login_url: str, username: str, password: str, auth_mode: str, stealth_mode: bool):
-    print(f"[INIT] Starting scan for {target_url}...")
+# --- Core Scan Logic ---
+async def run_scan(scan_id: str, target_url: str, max_pages: int, 
+                   login_url: str, username: str, password: str, 
+                   auth_mode: str, stealth_mode: bool):
+    """
+    Main scan workflow:
+    1. Crawl target with Spider
+    2. Scan each URL with VulnerabilityScanner
+    3. Save findings to DB
+    """
+    print(f"[INIT] Starting scan {scan_id} for {target_url}")
+    
+    # Initialize in-memory store
+    scan_results[scan_id] = {
+        "status": "Running",
+        "target_url": target_url,
+        "crawled_urls": [],
+        "findings": [],
+        "started_at": datetime.utcnow().isoformat()
+    }
     
     session = None
     try:
-        # 1. Update Status -> Running
-        supabase.table("scans").update({"status": "Running"}).eq("id", scan_id).execute()
+        # Update DB status
+        if supabase:
+            supabase.table("scans").update({
+                "status": "Running"
+            }).eq("id", scan_id).execute()
 
-        # 2. Create HTTP Session
+        # Create HTTP Session
         session = aiohttp.ClientSession()
 
-        # 3. Crawl
-        print("[*] Starting Crawler...")
+        # --- Phase 1: Crawl ---
+        print(f"[*] Phase 1: Crawling {target_url}...")
         spider = Spider(target_url, max_pages)
-        urls = await spider.crawl()
+        crawled_urls = await spider.crawl()
         
-        crawled_count = len(urls)
+        # Include base URL if not already crawled
+        if target_url not in crawled_urls:
+            crawled_urls.insert(0, target_url)
+        
+        crawled_count = len(crawled_urls)
         print(f"[*] Crawl Complete. Found {crawled_count} URLs.")
         
-        supabase.table("scans").update({
-            "crawled_count": crawled_count
-        }).eq("id", scan_id).execute()
+        scan_results[scan_id]["crawled_urls"] = crawled_urls
+        
+        if supabase:
+            supabase.table("scans").update({
+                "crawled_count": crawled_count
+            }).eq("id", scan_id).execute()
 
-        # 4. Scan - Using correct constructor
-        print(f"[*] Starting Vulnerability Scan on {crawled_count} URLs...")
+        # --- Phase 2: Scan ---
+        print(f"[*] Phase 2: Scanning {crawled_count} URLs...")
         scanner = VulnerabilityScanner(
             scan_id=scan_id, 
             supabase_client=supabase, 
             stealth_mode=stealth_mode
         )
         
-        # Scan each URL
-        for url in urls:
-             if not url.startswith("http"): continue
-             print(f"[*] Scanning: {url}")
-             await scanner.scan_url(url, session)
+        # Scan each crawled URL
+        for i, url in enumerate(crawled_urls):
+            if not url.startswith("http"):
+                continue
+            print(f"[*] Scanning ({i+1}/{crawled_count}): {url}")
+            try:
+                await scanner.scan_url(url, session)
+            except Exception as e:
+                print(f"[!] Error scanning {url}: {e}")
+            
+            # Update findings in real-time (in-memory)
+            scan_results[scan_id]["findings"] = scanner.findings
 
+        # --- Phase 3: Complete ---
         vulnerability_count = len(scanner.findings)
         print(f"[SUCCESS] Scan completed. Found {vulnerability_count} vulnerabilities.")
 
-        # 5. Save Results
-        supabase.table("scans").update({
-            "status": "Completed",
-            "vulnerability_count": vulnerability_count,
-            "completed_at": datetime.utcnow().isoformat()
-        }).eq("id", scan_id).execute()
+        scan_results[scan_id]["status"] = "Completed"
+        scan_results[scan_id]["vulnerability_count"] = vulnerability_count
+        scan_results[scan_id]["completed_at"] = datetime.utcnow().isoformat()
+        
+        if supabase:
+            supabase.table("scans").update({
+                "status": "Completed",
+                "vulnerability_count": vulnerability_count,
+                "completed_at": datetime.utcnow().isoformat()
+            }).eq("id", scan_id).execute()
 
     except Exception as e:
         print(f"[ERROR] Scan Failed: {e}")
         import traceback
         traceback.print_exc()
-        supabase.table("scans").update({"status": "Error"}).eq("id", scan_id).execute()
+        
+        scan_results[scan_id]["status"] = "Error"
+        scan_results[scan_id]["error"] = str(e)
+        
+        if supabase:
+            supabase.table("scans").update({
+                "status": "Error"
+            }).eq("id", scan_id).execute()
+    
     finally:
         if session:
             await session.close()
 
-@app.post("/scan")
+# --- API Routes ---
+
+@app.post("/scan", response_model=ScanResponse)
 async def create_scan(request: ScanRequest, background_tasks: BackgroundTasks):
+    """Start a new scan"""
     try:
-        # Insert initial record
-        res = supabase.table("scans").insert({
-            "target_url": request.url,
-            "status": "Pending"
-        }).execute()
+        scan_id = None
         
-        scan_id = res.data[0]['id']
+        if supabase:
+            # Insert into DB
+            res = supabase.table("scans").insert({
+                "target_url": request.url,
+                "status": "Pending"
+            }).execute()
+            scan_id = res.data[0]['id']
+        else:
+            # Generate UUID for in-memory
+            import uuid
+            scan_id = str(uuid.uuid4())
+            scan_results[scan_id] = {
+                "id": scan_id,
+                "target_url": request.url,
+                "status": "Pending",
+                "created_at": datetime.utcnow().isoformat()
+            }
         
-        # Start Background Task
+        # Start background scan
         background_tasks.add_task(
             run_scan, 
             scan_id, 
@@ -134,33 +220,68 @@ async def create_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     
     except Exception as e:
         import traceback
-        return {"error": str(e), "trace": traceback.format_exc()}
+        print(f"[ERROR] Create scan failed: {e}")
+        traceback.print_exc()
+        return {"scan_id": "", "status": "Error", "target": request.url}
 
 @app.get("/scan/{scan_id}")
 async def get_scan(scan_id: str):
-    res = supabase.table("scans").select("*").eq("id", scan_id).single().execute()
+    """Get scan status and results"""
+    # Try in-memory first (for real-time updates)
+    if scan_id in scan_results:
+        data = scan_results[scan_id].copy()
+        data["id"] = scan_id
+        return data
     
-    # Get vulns
-    vulns_res = supabase.table("vulnerabilities").select("*").eq("scan_id", scan_id).execute()
+    # Fallback to DB
+    if supabase:
+        try:
+            res = supabase.table("scans").select("*").eq("id", scan_id).single().execute()
+            data = res.data
+            
+            # Get vulnerabilities
+            vulns_res = supabase.table("vulnerabilities").select("*").eq("scan_id", scan_id).execute()
+            data['findings'] = vulns_res.data
+            data['crawled_urls'] = []  # Not stored in DB
+            
+            return data
+        except Exception as e:
+            print(f"[!] Get scan error: {e}")
     
-    data = res.data
-    data['findings'] = vulns_res.data
-    
-    return data
+    return {"error": "Scan not found", "id": scan_id}
 
 @app.get("/history")
 async def get_history():
-    res = supabase.table("scans").select("*").order("created_at", desc=True).limit(50).execute()
-    return res.data
+    """Get scan history"""
+    if supabase:
+        try:
+            res = supabase.table("scans").select("*").order("created_at", desc=True).limit(50).execute()
+            return res.data
+        except Exception as e:
+            print(f"[!] History error: {e}")
+            return []
+    
+    # Return in-memory scans
+    return list(scan_results.values())
 
 @app.get("/debug/scans")
 async def debug_scans():
-    res = supabase.table("scans").select("*").order("created_at", desc=True).limit(10).execute()
-    return res.data
+    """Debug endpoint to see all in-memory scans"""
+    return {
+        "in_memory_count": len(scan_results),
+        "scans": list(scan_results.keys()),
+        "supabase_connected": supabase is not None
+    }
 
 @app.get("/")
 def health_check():
-    return {"status": "online", "version": "2.0", "supabase_connected": supabase is not None}
+    """Health check endpoint"""
+    return {
+        "status": "online", 
+        "version": "2.0",
+        "supabase_connected": supabase is not None,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 if __name__ == "__main__":
     import uvicorn

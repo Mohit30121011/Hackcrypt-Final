@@ -3,6 +3,11 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
+  /* Safe area insets for notched phones */
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
 }
 
 @theme {
@@ -36,6 +41,15 @@
     background-attachment: fixed;
   }
 
+  /* Safe area utilities */
+  .safe-area-top {
+    padding-top: max(0.75rem, var(--sat));
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(1rem, var(--sab));
+  }
+
   /* Custom Scrollbar for Glass UI */
   .glass-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -49,17 +63,40 @@
   .glass-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-white/10 rounded-full hover:bg-white/20;
   }
+
+  /* Touch-friendly tap targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on mobile UI */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Smooth momentum scrolling on iOS */
+  .scroll-smooth-ios {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
 }
 
 body {
   background-color: #050505;
-  /* Deep black for better contrast */
   color: white;
   min-height: 100vh;
+  min-height: 100dvh;
+  /* Dynamic viewport height for mobile */
   font-family: var(--font-body);
   letter-spacing: -0.011em;
-  /* Tighter tracking like iOS */
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Remove tap highlight on mobile */
+  overscroll-behavior-y: contain;
+  /* Prevent pull-to-refresh interference */
 }
 
 h1,
@@ -70,4 +107,40 @@ h5,
 h6 {
   font-family: var(--font-display);
   letter-spacing: -0.022em;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 1023px) {
+
+  /* Ensure buttons are touch-friendly */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Better input styling on mobile */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+    /* Prevents zoom on iOS */
+  }
+}
+
+/* Animations */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  50% {
+    box-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

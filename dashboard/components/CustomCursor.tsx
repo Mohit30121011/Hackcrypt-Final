@@ -6,8 +6,19 @@ import { motion } from "framer-motion";
 export default function CustomCursor() {
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isPointer, setIsPointer] = useState(false);
+    const [isMobile, setIsMobile] = useState(true); // Default true to prevent flash
 
     useEffect(() => {
+        // Check if mobile/touch device
+        const checkMobile = () => {
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isSmallScreen = window.innerWidth < 1024;
+            setIsMobile(isTouchDevice || isSmallScreen);
+        };
+
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+
         const updateMousePosition = (e: MouseEvent) => {
             setMousePosition({ x: e.clientX, y: e.clientY });
 
@@ -24,20 +35,26 @@ export default function CustomCursor() {
 
         return () => {
             window.removeEventListener("mousemove", updateMousePosition);
+            window.removeEventListener("resize", checkMobile);
         };
     }, []);
+
+    // Don't render on mobile
+    if (isMobile) return null;
 
     return (
         <>
             <style jsx global>{`
-        * {
-          cursor: none !important;
-        }
-      `}</style>
+                @media (min-width: 1024px) {
+                    * {
+                        cursor: none !important;
+                    }
+                }
+            `}</style>
 
             {/* Main Cursor Dot */}
             <motion.div
-                className="fixed top-0 left-0 w-3 h-3 bg-cyan-400 rounded-full pointer-events-none z-[10000] mix-blend-screen shadow-[0_0_10px_rgba(34,211,238,0.8)]"
+                className="fixed top-0 left-0 w-3 h-3 bg-cyan-400 rounded-full pointer-events-none z-[10000] mix-blend-screen shadow-[0_0_10px_rgba(34,211,238,0.8)] hidden lg:block"
                 animate={{
                     x: mousePosition.x - 6,
                     y: mousePosition.y - 6,
@@ -53,7 +70,7 @@ export default function CustomCursor() {
 
             {/* Trailing Ring */}
             <motion.div
-                className="fixed top-0 left-0 w-8 h-8 border border-cyan-400/50 rounded-full pointer-events-none z-[9999] mix-blend-screen"
+                className="fixed top-0 left-0 w-8 h-8 border border-cyan-400/50 rounded-full pointer-events-none z-[9999] mix-blend-screen hidden lg:block"
                 animate={{
                     x: mousePosition.x - 16,
                     y: mousePosition.y - 16,
