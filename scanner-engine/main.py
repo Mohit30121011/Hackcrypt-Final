@@ -108,13 +108,21 @@ async def run_scan(scan_id: str, target_url: str, max_pages: int,
                 "status": "Running"
             }).eq("id", scan_id).execute()
 
-        # Create HTTP Session
-        session = aiohttp.ClientSession()
-
         # --- Phase 1: Crawl ---
         print(f"[*] Phase 1: Crawling {target_url}...")
-        spider = Spider(target_url, max_pages)
-        crawled_urls = await spider.crawl()
+        spider = Spider(
+            start_url=target_url, 
+            max_pages=max_pages,
+            auth_mode=auth_mode,
+            login_url=login_url,
+            username=username,
+            password=password
+        )
+        crawled_urls, cookies = await spider.crawl()
+        
+        # Initialize Session with Cookies
+        cookie_jar = {c['name']: c['value'] for c in cookies}
+        session = aiohttp.ClientSession(cookies=cookie_jar)
         
         # Include base URL if not already crawled
         if target_url not in crawled_urls:

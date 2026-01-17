@@ -1,14 +1,20 @@
 import asyncio
 from urllib.parse import urlparse, urljoin
-from typing import Set, List
+from typing import Set, List, Tuple, Dict, Any, Optional
 import aiohttp
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
 class Spider:
-    def __init__(self, start_url: str, max_pages: int = 10):
+    def __init__(self, start_url: str, max_pages: int = 10, 
+                 auth_mode: str = "none", login_url: str = None, 
+                 username: str = None, password: str = None):
         self.start_url = start_url
         self.base_url = start_url
+        self.auth_mode = auth_mode
+        self.login_url = login_url
+        self.username = username
+        self.password = password
         self.visited_urls: Set[str] = set()
         self.found_links: Set[str] = set()
         self.found_links.add(start_url)
@@ -22,25 +28,60 @@ class Spider:
         if "127.0.0.1" in self.domain and "localhost" in netloc: return True
         return netloc == self.domain
 
-    async def crawl(self, session_ignored=None) -> List[str]:
+    async def crawl(self) -> Tuple[List[str], List[Dict]]:
         """
         Main crawl method.
-        Tries Dynamic (Playwright) first.
-        If it fails (e.g., browsers not installed on Render), falls back to Static (BS4).
+        Returns (crawled_urls, cookies)
         """
         print(f"[*] Starting Crawl on {self.base_url}")
+        cookies = []
         
         # Try Dynamic Crawl
         try:
             print("[*] Attempting Dynamic Crawl (Playwright)...")
             
+            headless = True
+            if self.auth_mode == "interactive":
+                headless = False
+                print("[!] Launching Browser in INTERACTIVE mode")
+            
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
+                browser = await p.chromium.launch(headless=headless)
                 # Create context with custom UA
                 context = await browser.new_context(
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Scancrypt/2.0 (Dynamic)"
                 )
                 page = await context.new_page()
+                
+                # --- Authentication Logic ---
+                if self.auth_mode == "interactive":
+                     print("[*] Waiting for Interactive Login...")
+                     target = self.login_url if self.login_url else self.base_url
+                     try:
+                         await page.goto(target, timeout=60000)
+                         # Wait ample time for user to login
+                         print("[*] You have 45 seconds to login...")
+                         await page.wait_for_timeout(45000) 
+                         print("[*] Resuming crawl...")
+                     except Exception as e:
+                         print(f"[!] Interactive Login Warning: {e}")
+
+                elif self.auth_mode == "auto" and self.login_url and self.username and self.password:
+                     print(f"[*] Attempting Auto Login at {self.login_url}")
+                     try:
+                         await page.goto(self.login_url, timeout=30000)
+                         # Heuristic fill
+                         await page.fill('input[type="text"], input[type="email"], input[name="user"], input[name="username"]', self.username)
+                         await page.fill('input[type="password"]', self.password)
+                         await page.press('input[type="password"]', 'Enter')
+                         await page.wait_for_timeout(5000)
+                         print("[*] Auto Login submitted")
+                     except Exception as e:
+                         print(f"[!] Auto Login Failed: {e}")
+                
+                # Capture Cookies after auth
+                cookies = await context.cookies()
+                print(f"[*] Captured {len(cookies)} cookies")
                 
                 queue = [self.base_url]
                 self.visited_urls.add(self.base_url) # Start with base
@@ -74,14 +115,14 @@ class Spider:
                 
                 await browser.close()
                 print(f"[*] Dynamic Crawl Success. Found {len(self.visited_urls)} URLs.")
-                return list(self.visited_urls)
+                return list(self.visited_urls), cookies
 
         except Exception as e:
             print(f"[!] Dynamic Crawl Failed: {e}")
             print("[*] Falling back to Static Crawl (BeautifulSoup)...")
             return await self.crawl_static()
 
-    async def crawl_static(self):
+    async def crawl_static(self) -> Tuple[List[str], List[Dict]]:
         """Fallback static crawler using aiohttp + BeautifulSoup"""
         try:
             async with aiohttp.ClientSession() as session:
@@ -105,4 +146,4 @@ class Spider:
             import traceback
             print(f"[!] Static Crawl Error: {e}\n{traceback.format_exc()}")
         
-        return list(self.visited_urls)
+        return list(self.visited_urls), []
