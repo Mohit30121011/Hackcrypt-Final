@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { getAllScans, getScanById, StoredScan } from "../../lib/scanStorage";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
-import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, RefreshCw } from "lucide-react";
+import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, RefreshCw, X } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { HistorySkeleton } from "@/components/HistorySkeleton";
 import { GlitchHeading } from "@/components/GlitchHeading";
@@ -17,6 +17,7 @@ export default function AnalyticsDashboard() {
     const [currentTime, setCurrentTime] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [showAllFindings, setShowAllFindings] = useState(false);
+    const [urlFilter, setUrlFilter] = useState<string | null>(null);
 
     const fetchScans = useCallback(async () => {
         // Only show loading if we have no data initially
@@ -98,7 +99,8 @@ export default function AnalyticsDashboard() {
         [key: string]: any;
     }
 
-    const findings: Finding[] = selectedScan?.findings || [];
+    const rawFindings: Finding[] = selectedScan?.findings || [];
+    const findings = urlFilter ? rawFindings.filter(f => f.url === urlFilter) : rawFindings;
     const stats = {
         total: findings.length,
         critical: findings.filter((f: Finding) => f.severity === "Critical").length,
@@ -327,7 +329,18 @@ export default function AnalyticsDashboard() {
                                     className="glass-panel rounded-2xl md:rounded-[32px] p-4 md:p-8 shrink-0"
                                 >
                                     <div className="flex items-center justify-between mb-4 md:mb-6">
-                                        <h3 className="text-lg md:text-xl font-semibold text-white/90">Recent Vulnerabilities</h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-lg md:text-xl font-semibold text-white/90">Recent Vulnerabilities</h3>
+                                            {urlFilter && (
+                                                <button
+                                                    onClick={() => setUrlFilter(null)}
+                                                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/20 transition-colors"
+                                                >
+                                                    <span className="max-w-[150px] truncate">{urlFilter}</span>
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                        </div>
                                         <button
                                             onClick={() => setShowAllFindings(!showAllFindings)}
                                             className="text-xs md:text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
@@ -336,8 +349,8 @@ export default function AnalyticsDashboard() {
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-                                        {selectedScan?.findings && selectedScan.findings.length > 0 ? (
-                                            selectedScan.findings.slice(0, showAllFindings ? undefined : 8).map((finding: Finding, idx: number) => (
+                                        {findings.length > 0 ? (
+                                            findings.slice(0, (showAllFindings || urlFilter) ? undefined : 8).map((finding: Finding, idx: number) => (
                                                 <div
                                                     key={idx}
                                                     className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all cursor-pointer group"
@@ -355,7 +368,13 @@ export default function AnalyticsDashboard() {
                                                     ></div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs md:text-sm font-medium text-white/90 group-hover:text-white truncate transition-colors">{finding.name}</p>
-                                                        <p className="text-[10px] md:text-xs text-white/40 truncate">{finding.url}</p>
+                                                        <p
+                                                            onClick={(e) => { e.stopPropagation(); setUrlFilter(finding.url); }}
+                                                            className="text-[10px] md:text-xs text-white/40 truncate hover:text-cyan-400 hover:underline cursor-pointer transition-colors"
+                                                            title="Filter by this URL"
+                                                        >
+                                                            {finding.url}
+                                                        </p>
                                                     </div>
                                                     <div className="px-2 py-0.5 md:px-2.5 md:py-1 rounded-lg bg-white/5 text-[10px] md:text-xs font-mono text-white/60 border border-white/5">
                                                         #{idx + 1}
