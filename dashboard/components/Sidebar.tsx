@@ -74,12 +74,18 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
                                     }`}
                             >
                                 {isActive && (
-                                    <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} border border-white/10 rounded-[24px]`} />
+                                    <>
+                                        {/* Active Background Glow */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent rounded-[24px]" />
+
+                                        {/* Left Accent Bar */}
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-purple-500 rounded-r-full shadow-[0_0_15px_#a855f7]" />
+                                    </>
                                 )}
-                                <item.icon className="w-5 h-5 relative z-10" />
-                                <span className="font-medium relative z-10 text-[15px]">{item.name}</span>
+                                <item.icon className={`w-5 h-5 relative z-10 ${isActive ? "text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "text-white/40"}`} />
+                                <span className={`font-medium relative z-10 text-[15px] ${isActive ? "tracking-wide" : ""}`}>{item.name}</span>
                                 {isActive && (
-                                    <div className="absolute right-4 w-1.5 h-1.5 rounded-full bg-blue-400 blur-[2px] shadow-[0_0_8px_currentColor]" />
+                                    <div className="absolute right-4 w-1.5 h-1.5 rounded-full bg-purple-400 blur-[1px] shadow-[0_0_8px_currentColor] animate-pulse" />
                                 )}
                             </Link>
                         );
