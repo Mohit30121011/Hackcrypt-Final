@@ -423,7 +423,7 @@ export default function AnalyticsDashboard() {
                                                     className={`p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer group relative overflow-hidden ${selectedScanId === scan.id ? 'ring-1 ring-cyan-500/50 bg-white/10' : ''}`}
                                                 >
                                                     <div className="flex justify-between items-start mb-2">
-                                                        <span className="text-[10px] font-mono text-white/40">{new Date(scan.timestamp).toLocaleDateString()}</span>
+                                                        <span className="text-[10px] font-mono text-white/40">{new Date(scan.created_at || scan.timestamp || Date.now()).toLocaleDateString()}</span>
                                                         {scan.risk_score && (
                                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${scan.risk_score > 7 ? 'bg-red-500/20 text-red-400' :
                                                                 scan.risk_score > 4 ? 'bg-amber-500/20 text-amber-400' :
@@ -435,7 +435,7 @@ export default function AnalyticsDashboard() {
                                                     </div>
                                                     <p className="text-sm font-medium text-white truncate mb-1">{scan.target_url || scan.target || "Unknown Target"}</p>
                                                     <div className="flex items-center gap-2 text-[10px] text-white/50">
-                                                        <span>{scan.findings?.length || 0} Findings</span>
+                                                        <span>{scan.vulnerability_count || scan.findings?.length || 0} Findings</span>
                                                         <span>•</span>
                                                         <span>{scan.crawled_count || 0} URLs</span>
                                                     </div>
