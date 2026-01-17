@@ -220,7 +220,7 @@ function LiveActivityContent() {
                     {/* Header - Mobile Optimized */}
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4 md:mb-8">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg shadow-emerald-500/20 flex-shrink-0">
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[18px] bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center flex-shrink-0">
                                 <Activity className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
                             </div>
                             <div>
@@ -315,7 +315,7 @@ function LiveActivityContent() {
                                     ].map((filter) => (
                                         <button
                                             key={filter.key}
-                                            onClick={() => setSeverityFilter(filter.key)}
+                                            onClick={() => { setSeverityFilter(filter.key); setCategoryFilter("all"); }}
                                             className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${severityFilter === filter.key
                                                 ? `${filter.color} border border-current`
                                                 : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
@@ -338,7 +338,7 @@ function LiveActivityContent() {
                                     ].map((filter) => (
                                         <button
                                             key={filter.key}
-                                            onClick={() => setCategoryFilter(filter.key)}
+                                            onClick={() => { setCategoryFilter(filter.key); setSeverityFilter("all"); }}
                                             className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${categoryFilter === filter.key
                                                 ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                                                 : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
