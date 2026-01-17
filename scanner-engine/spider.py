@@ -55,14 +55,59 @@ class Spider:
                 
                 # --- Authentication Logic ---
                 if self.auth_mode == "interactive":
-                     print("[*] Waiting for Interactive Login...")
+                     print("[*] Opening Browser for Interactive Login...")
                      target = self.login_url if self.login_url else self.base_url
                      try:
                          await page.goto(target, timeout=60000)
-                         # Wait ample time for user to login
-                         print("[*] You have 90 seconds to login...")
-                         await page.wait_for_timeout(90000) 
-                         print("[*] Resuming crawl...")
+                         
+                         # Inject floating "Continue" button with click flag
+                         await page.evaluate('''
+                             () => {
+                                 window.__scancrypt_continue__ = false;
+                                 const btn = document.createElement('button');
+                                 btn.id = 'scancrypt-continue-btn';
+                                 btn.innerHTML = '✓ Click Here to Continue Scan';
+                                 btn.style.cssText = `
+                                     position: fixed;
+                                     bottom: 20px;
+                                     right: 20px;
+                                     z-index: 999999;
+                                     padding: 14px 28px;
+                                     background: linear-gradient(135deg, #10b981, #059669);
+                                     color: white;
+                                     font-size: 15px;
+                                     font-weight: 600;
+                                     border: none;
+                                     border-radius: 14px;
+                                     cursor: pointer;
+                                     box-shadow: 0 4px 25px rgba(16, 185, 129, 0.5);
+                                     font-family: system-ui, -apple-system, sans-serif;
+                                     transition: transform 0.2s, box-shadow 0.2s;
+                                 `;
+                                 btn.onmouseover = () => {
+                                     btn.style.transform = 'scale(1.05)';
+                                     btn.style.boxShadow = '0 6px 35px rgba(16, 185, 129, 0.7)';
+                                 };
+                                 btn.onmouseout = () => {
+                                     btn.style.transform = 'scale(1)';
+                                     btn.style.boxShadow = '0 4px 25px rgba(16, 185, 129, 0.5)';
+                                 };
+                                 btn.onclick = () => {
+                                     window.__scancrypt_continue__ = true;
+                                     btn.innerHTML = '⏳ Scanning...';
+                                     btn.style.background = '#374151';
+                                     btn.style.cursor = 'wait';
+                                 };
+                                 document.body.appendChild(btn);
+                             }
+                         ''')
+                         
+                         print("[*] Login in the browser, then click the green 'Continue' button...")
+                         
+                         # Wait for user to click button (max 5 minutes)
+                         await page.wait_for_function('window.__scancrypt_continue__ === true', timeout=300000)
+                         
+                         print("[*] Continue button clicked! Resuming scan...")
                      except Exception as e:
                          print(f"[!] Interactive Login Warning: {e}")
 
