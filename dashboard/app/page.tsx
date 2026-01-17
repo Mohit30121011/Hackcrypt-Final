@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Activity, Lock, Smartphone, Globe, ChevronRight, Command, Key, User, Eye, EyeOff } from "lucide-react";
 import { saveScan } from "@/lib/scanStorage";
 import { Sidebar } from "@/components/Sidebar";
+import { GlitchHeading } from "@/components/GlitchHeading";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
@@ -156,9 +157,10 @@ export default function Home() {
           </motion.div>
 
           <div className="w-full max-w-2xl text-center mb-8 md:mb-12">
-            <h2 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 tracking-tight text-white drop-shadow-2xl">
-              Safety First.
-            </h2>
+            <GlitchHeading
+              text="Safety First."
+              className="text-3xl md:text-5xl lg:text-7xl mb-4 md:mb-6 tracking-tight"
+            />
             <p className="text-sm md:text-lg text-white/40 font-medium tracking-wide px-4">
               Next-generation vulnerability scanning for the modern web.
             </p>
