@@ -330,7 +330,7 @@ async def get_report(scan_id: str):
             err_pdf.cell(0, 10, "Report Generation Failed", 0, 1)
             err_pdf.set_font('Arial', '', 12)
             err_pdf.multi_cell(0, 10, f"An error occurred while generating the report:\n{str(e)}\n\nPlease checks server logs.")
-            err_pdf.output(filename, 'F')
+            err_pdf.output(filename)
         
         # 3. Form readable download name
         # Safe target name

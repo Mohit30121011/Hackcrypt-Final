@@ -117,5 +117,5 @@ class PDFReport(FPDF):
             self.line(10, self.get_y(), 200, self.get_y())
             self.ln(5)
 
-        self.output(filename, 'F')
+        self.output(filename)
         return filename
