@@ -215,7 +215,11 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-white mb-0.5">Authentication</p>
-                    <p className="text-sm text-white/40 font-medium">{showAuthConfig ? "Configured" : "Not configured"}</p>
+                    <p className="text-sm text-white/40 font-medium">
+                      {loginUrl && (authMode === "interactive" || (username && password))
+                        ? "Configured"
+                        : "Not configured"}
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className={`w-6 h-6 text-white/20 transition-transform duration-300 ${showAuthConfig ? "rotate-90" : ""}`} />
@@ -224,12 +228,11 @@ export default function Home() {
               <AnimatePresence>
                 {showAuthConfig && (
                   <motion.div
-                    layout
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="px-6 pb-6 space-y-4 overflow-hidden"
+                    className="px-6 pb-6 space-y-4 overflow-hidden relative z-10"
                   >
                     <div className="h-px w-full bg-white/5 mb-4" />
 
@@ -260,7 +263,7 @@ export default function Home() {
                       value={loginUrl}
                       onChange={(e) => setLoginUrl(e.target.value)}
                       placeholder="Login URL (e.g. site.com/login)"
-                      className="w-full bg-black/40 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none relative z-10 transition-colors focus:bg-white/10"
                     />
 
                     <AnimatePresence mode="popLayout">
@@ -278,14 +281,14 @@ export default function Home() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="Username"
-                            className="w-full bg-black/40 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none"
+                            className="w-full bg-white/5 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none relative z-10 transition-colors focus:bg-white/10"
                           />
                           <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
-                            className="w-full bg-black/40 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none"
+                            className="w-full bg-white/5 border border-white/10 rounded-[20px] px-5 py-4 text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 text-sm font-medium outline-none relative z-10 transition-colors focus:bg-white/10"
                           />
                         </motion.div>
                       )}
