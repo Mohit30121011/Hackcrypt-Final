@@ -11,6 +11,9 @@ from supabase import create_client, Client
 # Import Engine Modules
 from spider import Spider
 from scanner import VulnerabilityScanner
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # --- Config ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -46,6 +49,7 @@ class ScanRequest(BaseModel):
     password: Optional[str] = None
     auth_mode: str = "none"
     stealth_mode: bool = False
+    user_id: Optional[str] = None
 
 class ScanResponse(BaseModel):
     scan_id: str
@@ -187,10 +191,12 @@ async def create_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         
         if supabase:
             # Insert into DB
-            res = supabase.table("scans").insert({
+            scan_data = {
                 "target_url": request.url,
-                "status": "Pending"
-            }).execute()
+                "status": "Pending",
+                "user_id": request.user_id 
+            }
+            res = supabase.table("scans").insert(scan_data).execute()
             scan_id = res.data[0]['id']
         else:
             # Generate UUID for in-memory
@@ -200,6 +206,7 @@ async def create_scan(request: ScanRequest, background_tasks: BackgroundTasks):
                 "id": scan_id,
                 "target_url": request.url,
                 "status": "Pending",
+                "user_id": request.user_id,
                 "created_at": datetime.utcnow().isoformat()
             }
         
@@ -251,18 +258,25 @@ async def get_scan(scan_id: str):
     return {"error": "Scan not found", "id": scan_id}
 
 @app.get("/history")
-async def get_history():
+async def get_history(user_id: Optional[str] = None):
     """Get scan history"""
     if supabase:
         try:
-            res = supabase.table("scans").select("*").order("created_at", desc=True).limit(50).execute()
+            query = supabase.table("scans").select("*").order("created_at", desc=True).limit(50)
+            if user_id:
+                query = query.eq("user_id", user_id)
+            
+            res = query.execute()
             return res.data
         except Exception as e:
             print(f"[!] History error: {e}")
             return []
     
     # Return in-memory scans
-    return list(scan_results.values())
+    scans = list(scan_results.values())
+    if user_id:
+        scans = [s for s in scans if s.get("user_id") == user_id]
+    return scans
 
 @app.get("/debug/scans")
 async def debug_scans():

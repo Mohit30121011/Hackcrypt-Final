@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Shield, Activity, Lock, Smartphone, Globe, ChevronRight, Command, Key, User, Eye, EyeOff } from "lucide-react";
 import { saveScan } from "@/lib/scanStorage";
 import { Sidebar } from "@/components/Sidebar";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const router = useRouter();
@@ -30,9 +31,13 @@ export default function Home() {
     setIsScanning(true);
 
     try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
       const payload: any = {
         url: targetUrl,
-        stealth_mode: isStealth
+        stealth_mode: isStealth,
+        user_id: user?.id
       };
 
       if (showAuthConfig && loginUrl) {

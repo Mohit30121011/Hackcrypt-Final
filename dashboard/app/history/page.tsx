@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { motion } from "framer-motion";
 import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, RefreshCw } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AnalyticsDashboard() {
     const [allScans, setAllScans] = useState<any[]>([]);
@@ -20,8 +21,16 @@ export default function AnalyticsDashboard() {
         // Fetch scans from API
         const fetchScans = async () => {
             try {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                const userId = user?.id;
+
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const response = await fetch(`${apiUrl}/history`);
+                const url = userId
+                    ? `${apiUrl}/history?user_id=${userId}`
+                    : `${apiUrl}/history`;
+
+                const response = await fetch(url);
                 const scans = await response.json();
                 setAllScans(scans);
                 if (scans.length > 0 && !selectedScanId) {

@@ -6,3 +6,4 @@ beautifulsoup4
 pydantic
 supabase
 fpdf2
+python-dotenv

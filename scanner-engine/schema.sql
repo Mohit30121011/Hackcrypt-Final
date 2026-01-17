@@ -9,7 +9,8 @@ create table scans (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   completed_at timestamp with time zone,
   crawled_count integer default 0,
-  vulnerability_count integer default 0
+  vulnerability_count integer default 0,
+  user_id uuid
 );
 
 -- Create Findings Table
