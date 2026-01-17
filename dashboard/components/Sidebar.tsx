@@ -50,7 +50,7 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
     ];
 
     return (
-        <div className="w-[300px] glass-card rounded-[40px] p-8 flex flex-col hidden lg:flex h-full overflow-hidden">
+        <div className="w-[300px] bg-[#030303] border-r border-white/5 rounded-[40px] p-8 flex flex-col hidden lg:flex h-full overflow-hidden shadow-2xl relative z-50">
             {/* Logo Section */}
             <div className="flex items-center justify-center mb-6 mt-2 shrink-0 relative group">
                 <div className="absolute inset-0 bg-cyan-500/20 blur-[30px] rounded-full animate-pulse group-hover:bg-cyan-500/30 transition-all duration-700 pointer-events-none" />
