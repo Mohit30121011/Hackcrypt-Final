@@ -115,13 +115,13 @@ export default function Home() {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full h-full glass-panel rounded-[32px] md:rounded-[48px] p-3 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
+        className="w-full h-full glass-panel rounded-[24px] md:rounded-[32px] lg:rounded-[48px] p-2 md:p-3 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
       >
         {/* Sidebar */}
         <Sidebar activeItem="Dashboard" />
 
         {/* Main Content */}
-        <div className="flex-1 rounded-[40px] bg-[#0A0A0A]/50 relative overflow-y-auto glass-scrollbar p-8 lg:p-12 pt-20 flex flex-col items-center justify-start">
+        <div className="flex-1 rounded-[20px] md:rounded-[32px] lg:rounded-[40px] bg-[#0A0A0A]/50 relative overflow-y-auto glass-scrollbar p-4 md:p-8 lg:p-12 pt-8 md:pt-16 lg:pt-20 flex flex-col items-center justify-start">
 
           {/* Dynamic Status Pill */}
           <motion.div
@@ -137,11 +137,11 @@ export default function Home() {
             )}
           </motion.div>
 
-          <div className="w-full max-w-2xl text-center mb-12 mt-8">
-            <h2 className="text-5xl lg:text-7xl font-bold mb-6 tracking-tight text-white drop-shadow-2xl">
+          <div className="w-full max-w-2xl text-center mb-8 md:mb-12 mt-4 md:mt-8">
+            <h2 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 tracking-tight text-white drop-shadow-2xl">
               Safety First.
             </h2>
-            <p className="text-lg text-white/40 font-medium tracking-wide">
+            <p className="text-sm md:text-lg text-white/40 font-medium tracking-wide px-4">
               Next-generation vulnerability scanning for the modern web.
             </p>
           </div>
@@ -149,10 +149,10 @@ export default function Home() {
           <div className="w-full max-w-2xl space-y-6">
             {/* Search Bar */}
             <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-[32px] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative flex items-center bg-[#151515] border border-white/10 rounded-[32px] p-2 pr-2 shadow-2xl focus-within:border-white/20 focus-within:bg-[#1A1A1A] transition-all duration-300">
-                <div className="pl-6 pr-4 text-white/30">
-                  <Globe className="w-6 h-6" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl md:rounded-[32px] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative flex items-center bg-[#151515] border border-white/10 rounded-2xl md:rounded-[32px] p-1.5 md:p-2 pr-2 shadow-2xl focus-within:border-white/20 focus-within:bg-[#1A1A1A] transition-all duration-300">
+                <div className="pl-4 md:pl-6 pr-2 md:pr-4 text-white/30">
+                  <Globe className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <input
                   type="text"
@@ -160,38 +160,38 @@ export default function Home() {
                   value={targetUrl}
                   onChange={(e) => setTargetUrl(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleScan()}
-                  className="w-full bg-transparent border-none text-white px-2 py-5 outline-none focus:outline-none focus:ring-0 placeholder:text-white/20 text-xl font-medium tracking-tight"
+                  className="w-full bg-transparent border-none text-white px-2 py-3 md:py-5 outline-none focus:outline-none focus:ring-0 placeholder:text-white/20 text-base md:text-xl font-medium tracking-tight"
                   disabled={isScanning}
                 />
                 <button
                   onClick={handleScan}
                   disabled={isScanning || !targetUrl}
-                  className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                  className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.2)] flex-shrink-0"
                 >
                   {isScanning ? (
-                    <div className="w-6 h-6 border-3 border-black/30 border-t-black rounded-full animate-spin" />
+                    <div className="w-5 h-5 md:w-6 md:h-6 border-3 border-black/30 border-t-black rounded-full animate-spin" />
                   ) : (
-                    <ChevronRight className="w-8 h-8 ml-0.5" />
+                    <ChevronRight className="w-6 h-6 md:w-8 md:h-8 ml-0.5" />
                   )}
                 </button>
               </div>
             </div>
 
             {/* Stealth Mode Card */}
-            <div className="bg-[#151515] border border-white/5 rounded-[32px] p-6 flex items-center justify-between group hover:border-white/10 transition-all cursor-pointer" onClick={() => setIsStealth(!isStealth)}>
-              <div className="flex items-center gap-5">
-                <div className={`w-12 h-12 rounded-[20px] flex items-center justify-center transition-colors duration-300 ${isStealth ? "bg-purple-500/20" : "bg-white/5"}`}>
-                  <Eye className={`w-6 h-6 ${isStealth ? "text-purple-400" : "text-white/30"}`} />
+            <div className="bg-[#151515] border border-white/5 rounded-2xl md:rounded-[32px] p-4 md:p-6 flex items-center justify-between group hover:border-white/10 transition-all cursor-pointer" onClick={() => setIsStealth(!isStealth)}>
+              <div className="flex items-center gap-3 md:gap-5">
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-[20px] flex items-center justify-center transition-colors duration-300 ${isStealth ? "bg-purple-500/20" : "bg-white/5"}`}>
+                  <Eye className={`w-5 h-5 md:w-6 md:h-6 ${isStealth ? "text-purple-400" : "text-white/30"}`} />
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-white mb-0.5">Stealth Mode</p>
-                  <p className="text-sm text-white/40 font-medium">Evade WAF & Rate Limits</p>
+                  <p className="text-base md:text-lg font-semibold text-white mb-0.5">Stealth Mode</p>
+                  <p className="text-xs md:text-sm text-white/40 font-medium">Evade WAF & Rate Limits</p>
                 </div>
               </div>
-              <div className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ${isStealth ? "bg-purple-500" : "bg-white/10"}`}>
+              <div className={`w-12 h-7 md:w-14 md:h-8 rounded-full p-1 transition-colors duration-300 ${isStealth ? "bg-purple-500" : "bg-white/10"}`}>
                 <motion.div
-                  className="w-6 h-6 bg-white rounded-full shadow-lg"
-                  animate={{ x: isStealth ? 24 : 0 }}
+                  className="w-5 h-5 md:w-6 md:h-6 bg-white rounded-full shadow-lg"
+                  animate={{ x: isStealth ? 20 : 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 />
               </div>
