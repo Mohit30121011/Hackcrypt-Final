@@ -31,7 +31,7 @@ export default function AboutPage() {
                     {/* Header */}
                     <div className="mb-8 md:mb-12">
                         <GlitchHeading
-                            text="About Scancrypt"
+                            text="About ScanCrypt"
                             className="text-3xl md:text-5xl lg:text-6xl tracking-tight mb-4"
                         />
                         <p className="text-white/60 text-lg md:text-xl max-w-2xl leading-relaxed">
