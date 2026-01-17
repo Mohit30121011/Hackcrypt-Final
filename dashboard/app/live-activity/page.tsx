@@ -161,13 +161,14 @@ function LiveActivityContent() {
     }, [scanIdState, fetchStatus]);
 
     // Stats
-    const criticalCount = findings.filter((f) => f.severity.toLowerCase() === "critical").length;
-    const highCount = findings.filter((f) => f.severity.toLowerCase() === "high").length;
-    const mediumCount = findings.filter((f) => f.severity.toLowerCase() === "medium").length;
-    const lowCount = findings.filter((f) => f.severity.toLowerCase() === "low").length;
+    const criticalCount = findings.filter((f) => f.severity?.toLowerCase() === "critical").length;
+    const highCount = findings.filter((f) => f.severity?.toLowerCase() === "high").length;
+    const mediumCount = findings.filter((f) => f.severity?.toLowerCase() === "medium").length;
+    const lowCount = findings.filter((f) => f.severity?.toLowerCase() === "low").length;
 
     // Category mapping
     const getCategory = (name: string): string => {
+        if (!name) return "other";
         const lowName = name.toLowerCase();
         if (lowName.includes("sql")) return "injection";
         if (lowName.includes("xss")) return "xss";
@@ -189,7 +190,7 @@ function LiveActivityContent() {
 
     // Filtered findings based on severity + category filter
     const filteredFindings = findings.filter((f) => {
-        const severityMatch = severityFilter === "all" || f.severity.toLowerCase() === severityFilter.toLowerCase();
+        const severityMatch = severityFilter === "all" || f.severity?.toLowerCase() === severityFilter.toLowerCase();
         const categoryMatch = categoryFilter === "all" || getCategory(f.name) === categoryFilter;
         return severityMatch && categoryMatch;
     });
