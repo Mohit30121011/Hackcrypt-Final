@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, Activity, Command, Lock, LogOut, History } from "lucide-react";
+import { Menu, X, Activity, Command, Lock, LogOut, History, Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +35,7 @@ export function MobileNav() {
         { name: "Live Activity", icon: Activity, href: "/live-activity" },
         { name: "History", icon: History, href: "/history" },
         { name: "Secure Enclave", icon: Lock, href: "/enclave" },
+        { name: "About Us", icon: Info, href: "/about" },
     ];
 
     const isActive = (href: string) => pathname === href;

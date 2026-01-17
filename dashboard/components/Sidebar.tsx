@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Activity, Command, Lock, LogOut } from "lucide-react";
+import { Activity, Command, Lock, LogOut, Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,7 +20,8 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
         pathname === "/" ? "Dashboard" :
             pathname.includes("/live-activity") ? "Live Activity" :
                 pathname.includes("/history") ? "History" :
-                    pathname.includes("/enclave") ? "Secure Enclave" : ""
+                    pathname.includes("/enclave") ? "Secure Enclave" :
+                        pathname.includes("/about") ? "About Us" : ""
     );
 
     const [user, setUser] = useState<any>(null);
@@ -45,6 +46,7 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
         { name: "Live Activity", icon: Activity, href: "/live-activity", gradient: "from-purple-500/20 to-blue-500/20" },
         { name: "History", icon: Activity, href: "/history", gradient: "from-purple-500/20 to-blue-500/20" },
         { name: "Secure Enclave", icon: Lock, href: "/enclave", gradient: "from-purple-500/20 to-blue-500/20" },
+        { name: "About Us", icon: Info, href: "/about", gradient: "from-purple-500/20 to-blue-500/20" },
     ];
 
     return (
