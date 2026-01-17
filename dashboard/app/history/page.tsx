@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getAllScans, getScanById, StoredScan } from "../../lib/scanStorage";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
@@ -15,34 +15,33 @@ export default function AnalyticsDashboard() {
     const [currentTime, setCurrentTime] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchScans = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            const userId = user?.id;
+
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const url = userId
+                ? `${apiUrl}/history?user_id=${userId}`
+                : `${apiUrl}/history`;
+
+            const response = await fetch(url);
+            const scans = await response.json();
+            setAllScans(scans);
+            if (scans.length > 0 && !selectedScanId) {
+                setSelectedScanId(scans[0].id);
+            }
+        } catch (error) {
+            console.error("Failed to fetch scan history:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedScanId]);
+
     useEffect(() => {
         setCurrentTime(new Date().toLocaleTimeString());
-
-        // Fetch scans from API
-        const fetchScans = async () => {
-            try {
-                const supabase = createClient();
-                const { data: { user } } = await supabase.auth.getUser();
-                const userId = user?.id;
-
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-                const url = userId
-                    ? `${apiUrl}/history?user_id=${userId}`
-                    : `${apiUrl}/history`;
-
-                const response = await fetch(url);
-                const scans = await response.json();
-                setAllScans(scans);
-                if (scans.length > 0 && !selectedScanId) {
-                    setSelectedScanId(scans[0].id);
-                }
-            } catch (error) {
-                console.error("Failed to fetch scan history:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchScans();
 
         const timer = setInterval(() => {
@@ -50,7 +49,21 @@ export default function AnalyticsDashboard() {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, []);
+    }, [fetchScans]);
+
+    const handleExport = () => {
+        if (!selectedScan) return;
+        const reportData = JSON.stringify(selectedScan, null, 2);
+        const blob = new Blob([reportData], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scan-report-${selectedScan.id}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     useEffect(() => {
         const fetchScanDetails = async () => {
@@ -157,11 +170,17 @@ export default function AnalyticsDashboard() {
                         </div>
 
                         <div className="flex gap-2 md:gap-3 overflow-x-auto pb-1 no-scrollbar shrink-0">
-                            <button className="glass-button px-3 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium flex items-center gap-2 hover:bg-white/15 whitespace-nowrap">
+                            <button
+                                onClick={fetchScans}
+                                className="glass-button px-3 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium flex items-center gap-2 hover:bg-white/15 whitespace-nowrap"
+                            >
                                 <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                 Refresh
                             </button>
-                            <button className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-3 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all whitespace-nowrap">
+                            <button
+                                onClick={handleExport}
+                                className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-3 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all whitespace-nowrap"
+                            >
                                 <Download className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                 Export Report
                             </button>
