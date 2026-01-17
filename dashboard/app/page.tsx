@@ -124,10 +124,11 @@ export default function Home() {
         <div className="flex-1 rounded-[20px] md:rounded-[32px] lg:rounded-[40px] bg-[#0A0A0A]/50 relative overflow-y-auto glass-scrollbar p-4 md:p-8 lg:p-12 pt-8 md:pt-16 lg:pt-20 flex flex-col items-center justify-start">
 
           {/* Dynamic Status Pill */}
+          {/* Dynamic Status Pill */}
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="absolute top-8 left-1/2 -translate-x-1/2"
+            className="mb-6 md:absolute md:top-8 md:left-1/2 md:-translate-x-1/2 md:mb-0"
           >
             {isStealth && (
               <div className="px-4 py-1.5 rounded-full bg-[#1A1A1A] border border-white/10 flex items-center gap-3 shadow-2xl backdrop-blur-xl">
@@ -137,7 +138,7 @@ export default function Home() {
             )}
           </motion.div>
 
-          <div className="w-full max-w-2xl text-center mb-8 md:mb-12 mt-4 md:mt-8">
+          <div className="w-full max-w-2xl text-center mb-8 md:mb-12">
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 tracking-tight text-white drop-shadow-2xl">
               Safety First.
             </h2>

@@ -111,7 +111,7 @@ export function LiveFindingCard({ finding, index }: LiveFindingCardProps) {
     const [copied, setCopied] = useState(false);
 
     const severityConfig = getSeverityConfig(finding.severity);
-    const category = VULN_CATEGORIES[finding.name.toLowerCase().replace(/\s+/g, "_")] || { label: "Security", icon: "🛡️", color: "text-gray-400" };
+    const category = VULN_CATEGORIES[(finding.name || "").toLowerCase().replace(/\s+/g, "_")] || { label: "Security", icon: "🛡️", color: "text-gray-400" };
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -164,7 +164,7 @@ export function LiveFindingCard({ finding, index }: LiveFindingCardProps) {
                                         <span className="text-[8px] md:text-[10px] text-white/30 font-mono hidden md:inline">{finding.cwe}</span>
                                     )}
                                 </div>
-                                <h3 className="text-white font-semibold text-xs md:text-sm truncate">{finding.name}</h3>
+                                <h3 className="text-white font-semibold text-xs md:text-sm truncate">{finding.name || "Unknown Vulnerability"}</h3>
                                 <p className="text-white/40 text-[10px] md:text-xs truncate mt-0.5">{finding.url}</p>
                             </div>
                         </div>
@@ -193,7 +193,7 @@ export function LiveFindingCard({ finding, index }: LiveFindingCardProps) {
                                     <Lightbulb className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="text-[10px] uppercase tracking-wider text-amber-400/70 mb-1 font-semibold">What This Means</p>
-                                        <p className="text-xs text-white/70 leading-relaxed">{getSimpleExplanation(finding.name)}</p>
+                                        <p className="text-xs text-white/70 leading-relaxed">{getSimpleExplanation(finding.name || "")}</p>
                                     </div>
                                 </div>
                             </div>
@@ -245,7 +245,7 @@ export function LiveFindingCard({ finding, index }: LiveFindingCardProps) {
                                     <Shield className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="text-[10px] uppercase tracking-wider text-emerald-400/70 mb-1 font-semibold">Quick Fix</p>
-                                        <p className="text-xs text-white/70 leading-relaxed">{getQuickFix(finding.name)}</p>
+                                        <p className="text-xs text-white/70 leading-relaxed">{getQuickFix(finding.name || "")}</p>
                                     </div>
                                 </div>
                             </div>
@@ -283,8 +283,8 @@ export function LiveFindingCard({ finding, index }: LiveFindingCardProps) {
     );
 }
 
-function getSeverityConfig(severity: string) {
-    switch (severity.toLowerCase()) {
+function getSeverityConfig(severity: string = "info") {
+    switch ((severity || "info").toLowerCase()) {
         case "critical":
             return {
                 accentBg: "bg-red-500",
