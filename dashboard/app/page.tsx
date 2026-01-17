@@ -42,11 +42,10 @@ export default function Home() {
 
       if (showAuthConfig && loginUrl) {
         payload.login_url = loginUrl;
+        payload.auth_mode = authMode; // "auto" or "interactive"
         if (authMode === "auto") {
           payload.username = username;
           payload.password = password;
-        } else {
-          payload.interactive_auth = true;
         }
       }
 
