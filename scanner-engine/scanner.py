@@ -285,7 +285,7 @@ class VulnerabilityScanner:
     def _add_finding(self, key: str, url: str, evidence: str, param: str = None, payload: str = None):
         info = self.kb.get(key, {})
         finding_data = {
-            "type": info.get("name", "Unknown Issue"),
+            "name": info.get("name", "Unknown Issue"),
             "severity": info.get("severity", "Low"),
             "url": url,
             "parameter": param,
