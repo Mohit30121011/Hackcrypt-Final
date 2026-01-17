@@ -52,13 +52,14 @@ export function Sidebar({ activeItem: propActiveItem }: SidebarProps) {
     return (
         <div className="w-[300px] glass-card rounded-[40px] p-8 flex flex-col hidden lg:flex h-full overflow-hidden">
             {/* Logo Section */}
-            <div className="flex items-center justify-center mb-6 mt-2 shrink-0">
+            <div className="flex items-center justify-center mb-6 mt-2 shrink-0 relative group">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-[30px] rounded-full animate-pulse group-hover:bg-cyan-500/30 transition-all duration-700 pointer-events-none" />
                 <Image
                     src="/logo.png"
                     alt="Scancrypt Logo"
                     width={700}
                     height={250}
-                    className="w-auto h-40 object-contain drop-shadow-[0_0_25px_rgba(168,85,247,0.7)]"
+                    className="w-48 h-auto opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500 relative z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]"
                     priority
                 />
             </div>

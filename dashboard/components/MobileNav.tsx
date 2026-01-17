@@ -54,7 +54,7 @@ export function MobileNav() {
                             alt="Scancrypt"
                             width={180}
                             height={60}
-                            className="h-10 w-auto object-contain"
+                            className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]"
                         />
                     </Link>
 

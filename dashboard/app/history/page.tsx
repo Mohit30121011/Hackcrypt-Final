@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { getAllScans, getScanById, StoredScan } from "../../lib/scanStorage";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
-import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, RefreshCw, X } from "lucide-react";
+import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, RefreshCw, X, Search } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { HistorySkeleton } from "@/components/HistorySkeleton";
 import { GlitchHeading } from "@/components/GlitchHeading";
@@ -18,6 +18,7 @@ export default function AnalyticsDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [showAllFindings, setShowAllFindings] = useState(false);
     const [urlFilter, setUrlFilter] = useState<string | null>(null);
+    const [historySearch, setHistorySearch] = useState("");
 
     const fetchScans = useCallback(async () => {
         // Only show loading if we have no data initially
@@ -393,36 +394,50 @@ export default function AnalyticsDashboard() {
 
                                 {/* Bottom - All Scans History Grid */}
                                 <div className="mt-8 md:mt-12 border-t border-white/10 pt-8">
-                                    <h3 className="text-lg md:text-xl font-semibold text-white/90 mb-4 md:mb-6">Scan Archive</h3>
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 md:mb-6">
+                                        <h3 className="text-lg md:text-xl font-semibold text-white/90">Scan Archive</h3>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by URL..."
+                                                value={historySearch}
+                                                onChange={(e) => setHistorySearch(e.target.value)}
+                                                className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-500/50 w-full md:w-[250px] transition-all focus:bg-white/10"
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                        {allScans.map(scan => (
-                                            <div
-                                                key={scan.id}
-                                                onClick={() => {
-                                                    setSelectedScanId(scan.id);
-                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                }}
-                                                className={`p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer group relative overflow-hidden ${selectedScanId === scan.id ? 'ring-1 ring-cyan-500/50 bg-white/10' : ''}`}
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <span className="text-[10px] font-mono text-white/40">{new Date(scan.timestamp).toLocaleDateString()}</span>
-                                                    {scan.risk_score && (
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${scan.risk_score > 7 ? 'bg-red-500/20 text-red-400' :
+                                        {allScans
+                                            .filter(scan => (scan.target_url || scan.target || "").toLowerCase().includes(historySearch.toLowerCase()))
+                                            .map(scan => (
+                                                <div
+                                                    key={scan.id}
+                                                    onClick={() => {
+                                                        setSelectedScanId(scan.id);
+                                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                    }}
+                                                    className={`p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all cursor-pointer group relative overflow-hidden ${selectedScanId === scan.id ? 'ring-1 ring-cyan-500/50 bg-white/10' : ''}`}
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-[10px] font-mono text-white/40">{new Date(scan.timestamp).toLocaleDateString()}</span>
+                                                        {scan.risk_score && (
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${scan.risk_score > 7 ? 'bg-red-500/20 text-red-400' :
                                                                 scan.risk_score > 4 ? 'bg-amber-500/20 text-amber-400' :
                                                                     'bg-blue-500/20 text-blue-400'
-                                                            }`}>
-                                                            Risk: {scan.risk_score}/10
-                                                        </span>
-                                                    )}
+                                                                }`}>
+                                                                Risk: {scan.risk_score}/10
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm font-medium text-white truncate mb-1">{scan.target_url || scan.target || "Unknown Target"}</p>
+                                                    <div className="flex items-center gap-2 text-[10px] text-white/50">
+                                                        <span>{scan.findings?.length || 0} Findings</span>
+                                                        <span>•</span>
+                                                        <span>{scan.crawled_count || 0} URLs</span>
+                                                    </div>
                                                 </div>
-                                                <p className="text-sm font-medium text-white truncate mb-1">{scan.target_url || scan.target || "Unknown Target"}</p>
-                                                <div className="flex items-center gap-2 text-[10px] text-white/50">
-                                                    <span>{scan.findings?.length || 0} Findings</span>
-                                                    <span>•</span>
-                                                    <span>{scan.crawled_count || 0} URLs</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            ))}
                                         {allScans.length === 0 && (
                                             <div className="col-span-full text-center py-8 text-white/30 italic">No historical scans found.</div>
                                         )}
