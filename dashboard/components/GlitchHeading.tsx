@@ -11,13 +11,13 @@ export function GlitchHeading({ text, className = "" }: GlitchHeadingProps) {
     return (
         <div className={`relative inline-block ${className}`}>
             {/* Main Text */}
-            <h2 className="relative z-20 font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 drop-shadow-2xl">
+            <h2 className="relative z-20 font-light tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-cyan-400/90 via-blue-500/90 to-purple-600/90 drop-shadow-lg">
                 {text}
             </h2>
 
             {/* Glitch Layer 1 - Cyan */}
             <motion.h2
-                className="absolute inset-0 font-bold text-[#00f0ff] z-10 pointer-events-none"
+                className="absolute inset-0 font-light tracking-wide text-[#00f0ff] z-10 pointer-events-none"
                 style={{ opacity: 0 }}
                 animate={{
                     x: [0, -4, 2, -4, 0],
@@ -36,7 +36,7 @@ export function GlitchHeading({ text, className = "" }: GlitchHeadingProps) {
 
             {/* Glitch Layer 2 - Violet */}
             <motion.h2
-                className="absolute inset-0 font-bold text-[#8b5cf6] z-10 pointer-events-none"
+                className="absolute inset-0 font-light tracking-wide text-[#8b5cf6] z-10 pointer-events-none"
                 style={{ opacity: 0 }}
                 animate={{
                     x: [0, 4, -2, 4, 0],
@@ -52,6 +52,6 @@ export function GlitchHeading({ text, className = "" }: GlitchHeadingProps) {
             >
                 {text}
             </motion.h2>
-        </div>
+        </div >
     );
 }
