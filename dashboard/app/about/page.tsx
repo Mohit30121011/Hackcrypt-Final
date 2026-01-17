@@ -73,7 +73,7 @@ export default function AboutPage() {
                     </div>
 
                     {/* Final Verification Matrix */}
-                    <div className="glass-panel rounded-2xl md:rounded-[32px] p-6 md:p-10 mb-8 md:mb-12 overflow-hidden">
+                    <div className="glass-panel rounded-2xl md:rounded-[32px] p-6 md:p-10 mb-8 md:mb-12 flex flex-col w-full">
                         <div className="flex items-center gap-3 mb-6 md:mb-8">
                             <CheckCircle className="w-8 h-8 text-emerald-400" />
                             <h2 className="text-2xl md:text-3xl font-bold text-white">System Capabilities Matrix</h2>
