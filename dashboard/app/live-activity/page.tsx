@@ -215,7 +215,7 @@ function LiveActivityContent() {
                 <Sidebar activeItem="Live Activity" />
 
                 {/* Main Content */}
-                <div className="flex-1 rounded-[12px] md:rounded-[20px] lg:rounded-[24px] bg-[#0A0A0A]/50 relative overflow-hidden p-3 md:p-6 lg:p-8 flex flex-col min-h-0">
+                <div className="flex-1 rounded-[12px] md:rounded-[20px] lg:rounded-[24px] bg-[#0A0A0A]/50 relative overflow-y-auto lg:overflow-hidden p-3 md:p-6 lg:p-8 flex flex-col min-h-0">
 
                     {/* Header - Mobile Optimized */}
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4 md:mb-8">
@@ -284,7 +284,7 @@ function LiveActivityContent() {
                     </div>
 
                     {/* Split View - Stacked on Mobile, Side-by-side on Desktop */}
-                    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-2 gap-3 md:gap-4 min-h-0 overflow-hidden">
+                    <div className="flex-none lg:flex-1 flex flex-col lg:grid lg:grid-cols-2 gap-3 md:gap-4 lg:min-h-0 lg:overflow-hidden">
                         {/* Terminal Column - Smaller height on mobile */}
                         <div className="flex flex-col h-[200px] md:h-[300px] lg:h-full bg-[#1C1C1E] rounded-xl md:rounded-[24px] border border-white/5 overflow-hidden shadow-2xl">
                             <div className="flex-1 overflow-hidden">
@@ -297,7 +297,7 @@ function LiveActivityContent() {
                         </div>
 
                         {/* Live Findings Column */}
-                        <div className="flex flex-col flex-1 lg:h-full overflow-hidden">
+                        <div className="flex flex-col lg:flex-1 lg:h-full lg:overflow-hidden mt-4 lg:mt-0">
                             <div className="flex flex-col gap-2 mb-2 md:mb-3">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm md:text-lg font-semibold text-white/90">Findings</h3>
@@ -354,7 +354,7 @@ function LiveActivityContent() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto glass-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3 pb-2">
+                            <div className="lg:flex-1 lg:overflow-y-auto glass-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3 pb-2">
                                 <AnimatePresence mode="popLayout">
                                     {(!filteredFindings || filteredFindings.length === 0) ? (
                                         <motion.div
