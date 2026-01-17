@@ -2,8 +2,6 @@
 <div align="center">
 
   <img src="dashboard/public/logo.png" alt="Scancrypt Logo" width="300" />
-
-  # ⚡ SCANCRYPT ⚡
   
   [![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=25&pause=1000&color=22D3EE&center=true&vCenter=true&width=500&lines=The+Future+of+Vulnerability+Scanning;AI-Driven.+Fast.+Secure.;Breaking+Barriers%2C+Not+Just+Code.)](https://git.io/typing-svg)
 
@@ -95,23 +93,19 @@ npm run dev
   <tr>
     <td align="center">
       <img src="https://ui-avatars.com/api/?name=Mohit+Gupta&background=22d3ee&color=000" width="100px;" alt=""/><br />
-      <b>Mohit Gupta</b><br/>
-      
+      <b>Mohit Gupta</b>
     </td>
     <td align="center">
       <img src="https://ui-avatars.com/api/?name=Khushi+Singh&background=c084fc&color=fff" width="100px;" alt=""/><br />
-      <b>Khushi Singh</b><br/>
-      
+      <b>Khushi Singh</b>
     </td>
     <td align="center">
       <img src="https://ui-avatars.com/api/?name=Jainam+Jain&background=f472b6&color=fff" width="100px;" alt=""/><br />
-      <b>Jainam Jain</b><br/>
-      
+      <b>Jainam Jain</b>
     </td>
     <td align="center">
       <img src="https://ui-avatars.com/api/?name=Jagrat+Mogaveera&background=34d399&color=000" width="100px;" alt=""/><br />
-      <b>Jagrat Mogaveera</b><br/>
-      
+      <b>Jagrat Mogaveera</b>
     </td>
   </tr>
 </table>
