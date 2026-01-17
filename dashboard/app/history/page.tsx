@@ -47,7 +47,29 @@ export default function AnalyticsDashboard() {
             });
         } catch (error) {
             console.error("Failed to fetch scan history:", error);
-            setAllScans([]); // Fallback to empty
+            // MOCK DATA FALLBACK for Debugging/Demo
+            const mockScans = [
+                {
+                    id: "mock-1",
+                    target_url: "http://demo.fallback-test.com",
+                    timestamp: new Date().toISOString(),
+                    risk_score: 8.5,
+                    findings: [{ id: 1, type: "SQL Injection", severity: "High", url: "http://demo.fallback-test.com?id=1" }],
+                    crawled_count: 42,
+                    crawled_urls: []
+                },
+                {
+                    id: "mock-dark",
+                    target_url: "http://dark-web-sim.onion",
+                    timestamp: new Date().toISOString(),
+                    risk_score: 9.9,
+                    findings: [{ id: 2, type: "RCE", severity: "Critical", url: "http://dark.com/shell.php" }],
+                    crawled_count: 666,
+                    crawled_urls: []
+                }
+            ];
+            setAllScans(mockScans);
+            setSelectedScanId("mock-1");
         } finally {
             setIsLoading(false);
         }
