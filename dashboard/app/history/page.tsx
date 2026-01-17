@@ -182,7 +182,7 @@ export default function AnalyticsDashboard() {
                                 className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-3 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all whitespace-nowrap"
                             >
                                 <Download className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                Export Report
+                                Export PDF Report
                             </button>
                         </div>
                     </div>
