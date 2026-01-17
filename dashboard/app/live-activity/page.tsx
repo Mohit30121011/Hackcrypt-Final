@@ -177,13 +177,13 @@ function LiveActivityContent() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="w-full h-full glass-panel rounded-[24px] md:rounded-[32px] p-2 flex gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
+                className="w-full h-full glass-panel rounded-[16px] md:rounded-[24px] lg:rounded-[32px] p-1.5 md:p-2 flex gap-2 md:gap-3 relative z-10 overflow-hidden shadow-2xl ring-1 ring-white/10"
             >
                 {/* Sidebar */}
                 <Sidebar activeItem="Live Activity" />
 
                 {/* Main Content */}
-                <div className="flex-1 rounded-[24px] bg-[#0A0A0A]/50 relative overflow-hidden p-6 lg:p-8 flex flex-col min-h-0">
+                <div className="flex-1 rounded-[12px] md:rounded-[20px] lg:rounded-[24px] bg-[#0A0A0A]/50 relative overflow-hidden p-3 md:p-6 lg:p-8 flex flex-col min-h-0">
 
                     {/* Header */}
                     <div className="flex items-start justify-between mb-10">
