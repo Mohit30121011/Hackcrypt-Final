@@ -8,6 +8,11 @@ class PDFReport(FPDF):
         self.cell(30, 10, 'Scancrypt Vulnerability Report', 0, 0, 'C')
         self.ln(20)
 
+    def sanitize(self, text):
+        if text is None:
+            return ""
+        return str(text).encode('latin-1', 'replace').decode('latin-1')
+
     def footer(self):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
@@ -16,12 +21,12 @@ class PDFReport(FPDF):
     def chapter_title(self, title):
         self.set_font('Arial', 'B', 12)
         self.set_fill_color(200, 220, 255)
-        self.cell(0, 6, title, 0, 1, 'L', 1)
+        self.cell(0, 6, self.sanitize(title), 0, 1, 'L', 1)
         self.ln(4)
 
     def chapter_body(self, body):
         self.set_font('Arial', '', 11)
-        self.multi_cell(0, 5, body)
+        self.multi_cell(0, 5, self.sanitize(body))
         self.ln()
 
     def render_code_block(self, code):
@@ -29,7 +34,7 @@ class PDFReport(FPDF):
         self.set_fill_color(245, 245, 245) # Very Light Grey
         self.set_text_color(40, 40, 40) # Dark code text
         # border=1 (rect), align='L', fill=True
-        self.multi_cell(0, 5, code, 1, 'L', True)
+        self.multi_cell(0, 5, self.sanitize(code), 1, 'L', True)
         self.set_text_color(0, 0, 0) # Reset
         self.ln(4)
 
@@ -38,7 +43,7 @@ class PDFReport(FPDF):
         
         # 1. Executive Summary
         self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, f"Scan Report for: {scan_data.get('target', 'Unknown')}", 0, 1)
+        self.cell(0, 10, self.sanitize(f"Scan Report for: {scan_data.get('target', 'Unknown')}"), 0, 1)
         self.set_font('Arial', '', 12)
         self.cell(0, 10, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 1)
         self.ln(10)
@@ -54,7 +59,7 @@ class PDFReport(FPDF):
         self.chapter_title("Executive Summary")
         self.set_font('Arial', '', 12)
         for sev, count in counts.items():
-            self.cell(40, 10, f"{sev}: {count}", 0, 1)
+            self.cell(40, 10, self.sanitize(f"{sev}: {count}"), 0, 1)
         self.ln(10)
 
         # 2. Detailed Findings
@@ -69,37 +74,38 @@ class PDFReport(FPDF):
             
             self.set_text_color(*color)
             self.set_font('Arial', 'B', 12)
-            self.cell(0, 8, f"{i}. [{severity}] {finding.get('name', finding.get('type', 'Vulnerability'))}", 0, 1)
+            name = finding.get('name', finding.get('type', 'Vulnerability'))
+            self.cell(0, 8, self.sanitize(f"{i}. [{severity}] {name}"), 0, 1)
             self.set_text_color(0, 0, 0)
             
             self.set_font('Arial', 'B', 10)
             self.cell(20, 6, "URL:", 0, 0)
             self.set_font('Arial', '', 10)
-            self.multi_cell(0, 6, finding.get('url', ''))
+            self.multi_cell(0, 6, self.sanitize(finding.get('url', '')))
             
             if finding.get('parameter'):
                 self.set_font('Arial', 'B', 10)
                 self.cell(20, 6, "Param:", 0, 0)
                 self.set_font('Arial', '', 10)
-                self.cell(0, 6, finding.get('parameter', ''), 0, 1)
+                self.cell(0, 6, self.sanitize(finding.get('parameter', '')), 0, 1)
 
             if finding.get('payload'):
                 self.set_font('Arial', 'B', 10)
                 self.cell(20, 6, "Payload:", 0, 0)
                 self.set_font('Arial', 'I', 10)
-                self.multi_cell(0, 6, finding.get('payload', ''))
+                self.multi_cell(0, 6, self.sanitize(finding.get('payload', '')))
 
             self.ln(2)
             self.set_font('Arial', 'B', 10)
             self.cell(0, 6, "Description:", 0, 1)
             self.set_font('Arial', '', 10)
-            self.multi_cell(0, 5, finding.get('description', ''))
+            self.multi_cell(0, 5, self.sanitize(finding.get('description', '')))
             
             self.ln(2)
             self.set_font('Arial', 'B', 10)
             self.cell(0, 6, "Remediation:", 0, 1)
             self.set_font('Arial', '', 10)
-            self.multi_cell(0, 5, finding.get('remediation', ''))
+            self.multi_cell(0, 5, self.sanitize(finding.get('remediation', '')))
             
             if finding.get('remediation_code'):
                 self.ln(2)
