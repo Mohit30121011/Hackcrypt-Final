@@ -60,8 +60,8 @@ class Spider:
                      try:
                          await page.goto(target, timeout=60000)
                          # Wait ample time for user to login
-                         print("[*] You have 45 seconds to login...")
-                         await page.wait_for_timeout(45000) 
+                         print("[*] You have 90 seconds to login...")
+                         await page.wait_for_timeout(90000) 
                          print("[*] Resuming crawl...")
                      except Exception as e:
                          print(f"[!] Interactive Login Warning: {e}")
