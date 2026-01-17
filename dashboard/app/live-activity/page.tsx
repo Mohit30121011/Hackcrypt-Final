@@ -180,6 +180,8 @@ function LiveActivityContent() {
         if (lowName.includes("cors")) return "cors";
         if (lowName.includes("jwt") || lowName.includes("auth") || lowName.includes("cookie") || lowName.includes("session")) return "auth";
         if (lowName.includes("header") || lowName.includes("tech") || lowName.includes("disclosure")) return "info";
+        if (lowName.includes("ssl") || lowName.includes("tls") || lowName.includes("policy") || lowName.includes("options")) return "info";
+        if (lowName.includes("clickjacking")) return "info";
         return "other";
     };
 
@@ -188,6 +190,8 @@ function LiveActivityContent() {
     const xssCount = findings.filter((f) => getCategory(f.name) === "xss").length;
     const accessCount = findings.filter((f) => getCategory(f.name) === "access").length;
     const authCount = findings.filter((f) => getCategory(f.name) === "auth").length;
+    const infoCount = findings.filter((f) => getCategory(f.name) === "info").length;
+    const otherCount = findings.filter((f) => getCategory(f.name) === "other").length;
 
     // Filtered findings based on severity + category filter
     const filteredFindings = findings.filter((f) => {
@@ -314,10 +318,11 @@ function LiveActivityContent() {
                                         { key: "high", label: `🔴 ${highCount}`, color: "bg-red-500/20 text-red-400" },
                                         { key: "medium", label: `🟡 ${mediumCount}`, color: "bg-amber-500/20 text-amber-400" },
                                         { key: "low", label: `🔵 ${lowCount}`, color: "bg-blue-500/20 text-blue-400" },
+                                        { key: "info", label: `ℹ️ ${findings.filter(f => f.severity?.toLowerCase() === "info").length}`, color: "bg-gray-500/20 text-gray-400" },
                                     ].map((filter) => (
                                         <button
                                             key={filter.key}
-                                            onClick={() => { setSeverityFilter(filter.key); setCategoryFilter("all"); }}
+                                            onClick={() => setSeverityFilter(severityFilter === filter.key ? "all" : filter.key)}
                                             className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${severityFilter === filter.key
                                                 ? `${filter.color} border border-current`
                                                 : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
@@ -336,11 +341,12 @@ function LiveActivityContent() {
                                         { key: "xss", label: `XSS`, icon: Zap, count: xssCount },
                                         { key: "access", label: `Access`, icon: Lock, count: accessCount },
                                         { key: "auth", label: `Auth`, icon: Key, count: authCount },
-                                        { key: "info", label: `Info`, icon: Info },
+                                        { key: "info", label: `Info`, icon: Info, count: infoCount },
+                                        { key: "other", label: `Other`, icon: Layers, count: otherCount },
                                     ].map((filter) => (
                                         <button
                                             key={filter.key}
-                                            onClick={() => { setCategoryFilter(filter.key); setSeverityFilter("all"); }}
+                                            onClick={() => setCategoryFilter(categoryFilter === filter.key ? "all" : filter.key)}
                                             className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${categoryFilter === filter.key
                                                 ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
                                                 : "bg-white/5 text-white/40 hover:bg-white/10 border border-transparent"
