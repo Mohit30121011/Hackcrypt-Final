@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Activity, Shield, AlertTriangle, CheckCircle, ChevronDown, Download, RefreshCw } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { HistorySkeleton } from "@/components/HistorySkeleton";
+import { GlitchHeading } from "@/components/GlitchHeading";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AnalyticsDashboard() {
@@ -149,9 +150,10 @@ export default function AnalyticsDashboard() {
                                         <Activity className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
                                     </div>
                                     <div>
-                                        <h1 className="text-xl md:text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">
-                                            Command Center
-                                        </h1>
+                                        <GlitchHeading
+                                            text="Command Center"
+                                            className="text-xl md:text-3xl tracking-tight"
+                                        />
                                         <div className="flex items-center gap-3 text-xs md:text-sm text-white/40 mt-1">
                                             <span className="flex items-center gap-1.5">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></span>

@@ -7,6 +7,7 @@ import { Shield, Activity, Clock, Target, CheckCircle2, Database, Zap, Lock, Key
 import { MacTerminal } from "@/components/MacTerminal";
 import { LiveFindingCard } from "@/components/LiveFindingCard";
 import { Sidebar } from "@/components/Sidebar";
+import { GlitchHeading } from "@/components/GlitchHeading";
 
 interface Finding {
     name: string;
@@ -224,9 +225,10 @@ function LiveActivityContent() {
                                 <Activity className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
                             </div>
                             <div>
-                                <h1 className="text-xl md:text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">
-                                    Live Scan
-                                </h1>
+                                <GlitchHeading
+                                    text="Live Scan"
+                                    className="text-xl md:text-3xl tracking-tight"
+                                />
                                 <div className="flex items-center gap-2 text-xs md:text-sm text-white/40 mt-0.5">
                                     <span className="flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
